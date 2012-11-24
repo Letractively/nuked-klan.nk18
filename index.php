@@ -8,7 +8,36 @@
 // the Free Software Foundation; either version 2 of the License.           //
 // -------------------------------------------------------------------------//
 
-define('INDEX_CHECK', 1);
+
+/* ---------------------------------- */
+/* Start version fusion 1.8 */
+/* ---------------------------------- */
+
+define('NK_START_TIME', microtime(true));
+define('INDEX_CHECK', true);
+define('ROOT_PATH', dirname( __FILE__ ) .'/');
+
+include('includes/libs/NK_Exception.php');
+include('includes/libs/NK_MySQL.php');
+
+/**
+ * Error
+ */
+/*
+if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'] ) )
+{
+    if ( !defined( 'NK_DEBUG' ) ) include ROOT_PATH .'includes/nkDebug.php';
+    nk_Error_DeBug();
+}
+ */
+
+
+
+/* ---------------------------------- */
+/* End version fusion 1.8 */
+/* ---------------------------------- */
+
+/***************************************************************************************************************************/
 
 include_once('Includes/php51compatibility.php');
 include('globals.php');
@@ -227,5 +256,5 @@ else{
     footer();
 }
 
-mysql_close($db);
+nkDB_disconnect();
 ?>

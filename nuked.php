@@ -9,58 +9,39 @@
 // -------------------------------------------------------------------------//
 defined('INDEX_CHECK') or die ('You can\'t run this file alone.');
 
-// CONNECT TO DB.
-connect();
 
-// QUERY NUKED CONFIG_TABLE.
-$nuked = array();
-$sql_conf = initializeControlDB($db_prefix);
-while ($row = mysql_fetch_array($sql_conf)) $nuked[$row['name']] = htmlentities($row['value'], ENT_NOQUOTES);
-unset($sql_conf, $row);
+/* ---------------------------------- */
+/* Start version fusion 1.8 */
+/* ---------------------------------- */
 
-// CONVERT ALL HTML ENTITIES TO THEIR APPLICABLE CHARACTERS
-$nuked['prefix'] = $db_prefix;
+/* Agregation functions : In works... */
 
-// FUNCTION TO FIX PRINTING TAGS
-function printSecuTags($value){
-    $value = htmlentities(html_entity_decode(html_entity_decode($value)));
-    return $value;
+/**
+ * @todo delete after handle errors
+ * Connection to database
+ * @global type $global
+ * @global type $db
+ * @global type $language
+ */
+function connect() {
+    global $global, $db, $language;
+
+    $db = mysql_connect($global['db_host'], $global['db_user'], $global['db_pass']);
+
+    if (!$db){
+        echo '<div style="text-align: center;">' . ERROR_QUERY . '</div>';
+        exit();
+    }
+
+    $connect = mysql_select_db($global['db_name'], $db);
+    mysql_query('SET NAMES "latin1"');
+        
+    if (!$connect){
+        echo '<div style="text-align: center;">' . ERROR_QUERYDB . '</div>';
+        exit();
+    }
 }
-// FIX TAGS IN NUKED ARRAY
-foreach($nuked as $k => $v){
-    $nuked[$k] = printSecuTags($v);
-}
 
-// INCLUDE CONSTANT TABLE
-include('Includes/constants.php');
-
-// $_REQUEST['file'] & $_REQUEST['op'] DEFAULT VALUE.
-if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
-if (empty($_REQUEST['op'])) $_REQUEST['op'] = 'index';
-
-
-// SELECT THEME, USER THEME OR NOT FOUND THEME : ERROR
-$nuked['user_theme'] = $_REQUEST[$nuked['cookiename'] . '_user_theme'];
-if ($nuked['user_theme'] && is_file(dirname(__FILE__) . '/themes/' . $nuked['user_theme'] . '/theme.php')) $theme = $nuked['user_theme'];
-elseif (is_file(dirname(__FILE__) . '/themes/' . $nuked['theme'] . '/theme.php')) $theme = $nuked['theme'];
-else exit(THEME_NOTFOUND);
-
-// SELECT LANGUAGE AND USER LANGUAGE
-$nuked['user_lang'] = $_REQUEST[$nuked['cookiename'] . '_user_langue'];
-$language = ($nuked['user_lang'] && is_file(dirname(__FILE__) . '/lang/' . $nuked['user_lang'] . '.lang.php')) ? $nuked['user_lang'] : $nuked['langue'];
-
-// FORMAT DATE FR/EN
-if($language == 'french') {
-    // On verifie l'os du serveur pour savoir si on est en windows (setlocale : ISO) ou en unix (setlocale : UTF8)
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') setlocale (LC_ALL, 'fr_FR','fra');
-    else setlocale(LC_ALL, 'fr_FR.UTF8','fra');    
-}
-elseif($language == 'english') setlocale(LC_ALL, 'en_US');
-
-// DATE FUNCTION WITH FORMAT AND ZONE FOR DATE
-$dateZone = getTimeZoneDateTime($nuked['datezone']);
-date_default_timezone_set($dateZone);
-    
 function nkDate($timestamp, $blok = FALSE) {
     global $nuked, $language;
     $format = ((($blok === FALSE) ? $nuked['IsBlok'] : $blok) === TRUE) ? ($language == 'french') ? '%d/%m/%Y' : '%m/%d/%Y' : $nuked['dateformat'];
@@ -68,6 +49,29 @@ function nkDate($timestamp, $blok = FALSE) {
     return iconv('UTF-8','ISO-8859-1',strftime($format, $timestamp));
     //return iconv('UTF-8','ISO-8859-1',utf8_encode(strftime($format, $timestamp))); // For Windows servers
 
+}
+
+/**
+ * Control database prefix before initialize connection.
+ * @param string $dbPrefix database prefix
+ */
+function nkDB_controlPrefix($prefixDB) {
+    if (!isset($prefixDB)) {
+        exit(DBPREFIX_ERROR);
+    } else {
+        $result = mysql_query('SELECT name, value FROM ' . $prefixDB . '_config');
+        if ($result == false) {
+            exit(DBPREFIX_ERROR);
+        } else {
+            return $result;
+        }
+    }
+}
+
+// FUNCTION TO FIX PRINTING TAGS
+function printSecuTags($value){
+    $value = htmlentities(html_entity_decode(html_entity_decode($value)));
+    return $value;
 }
 
 // CURRENT ANNUAL DATEZONE TIME TABLE
@@ -119,7 +123,7 @@ function session_close(){
 
 // READ PHP SESSION
 function session_read($id){
-    connect();
+    nkDB_connect();
 
     $sql = mysql_query('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . $id . '"');
     if(mysql_num_rows($sql) > 0){
@@ -132,7 +136,7 @@ function session_write($id, $data){
     $id = mysql_escape_string($id);
     $data = mysql_escape_string($data);
 
-    connect();
+    nkDB_connect();
 
     $sql = mysql_query('INSERT INTO ' . TMPSES_TABLE . ' (session_id, session_start, session_vars) VALUES ("' . $id . '", ' . time() . ', \'' . $data . '\')');
 
@@ -143,7 +147,7 @@ function session_write($id, $data){
 
 // DELETE PHP SESSION
 function session_delete($id){
-    connect();
+    nkDB_connect();
 
     $sql = mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . mysql_escape_string($id) . '"');
 
@@ -154,46 +158,12 @@ function session_delete($id){
 function session_gc($maxlife){
     $time = time() - $maxlife;
 
-    connect();
+    nkDB_connect();
 
     mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_start < ' . $time);
 
     return true;
 }
-
-// CONNECT TO DB.
-function connect(){
-    global $global, $db, $language;
-
-    $db = mysql_connect($global['db_host'], $global['db_user'], $global['db_pass']);
-
-    if (!$db){
-        echo '<div style="text-align: center;">' . ERROR_QUERY . '</div>';
-        exit();
-    }
-
-    $connect = mysql_select_db($global['db_name'], $db);
-    mysql_query('SET NAMES "latin1"');
-        
-    if (!$connect){
-        echo '<div style="text-align: center;">' . ERROR_QUERYDB . '</div>';
-        exit();
-    }
-}
-
-// CONFIG PHP SESSION
-if(ini_get('session.save_handler') == 'files') session_set_save_handler('session_open', 'session_close', 'session_read', 'session_write', 'session_delete', 'session_gc');
-
-if(ini_get('suhosin.session.encrypt') == '1'){
-    @ini_set('session.gc_probability', 100);
-    @ini_set('session.gc_divisor', 100);
-    @ini_set('session.gc_maxlifetime', (1440));
-}
-
-session_name('nuked');
-session_start();
-if (session_id() == '') exit(ERROR_SESSION);
-include ('Includes/nkSessions.php');
 
 // QUERY BAN FOR USER / VISITOR
 function banip() {
@@ -1092,7 +1062,7 @@ function erreursql($errno, $errstr, $errfile, $errline, $errcontext){
             $content = ob_get_clean();
             // CONNECT TO DB AND OPEN SESSION PHP
             if(file_exists('conf.inc.php')) include ('conf.inc.php');
-            connect();
+            nkDB_connect();
             session_name('nuked');
             session_start();
             if (session_id() == '') exit(ERROR_SESSION);
@@ -1131,17 +1101,87 @@ function send_stats_nk() {
 	}
 }
 
-// Control valid DB prefix
-function initializeControlDB($prefixDB) {
-    if (!isset($prefixDB)) {
-        exit(DBPREFIX_ERROR);
-    } else {
-        $result = mysql_query('SELECT name, value FROM ' . $prefixDB . '_config');
-        if ($result == false) {
-            exit(DBPREFIX_ERROR);
-        } else {
-            return $result;
-        }
-    }
+/* ---------------------------------- */
+/* End version fusion 1.8 */
+/* ---------------------------------- */
+
+/* ************************************************************************************************************************* */
+
+
+/**
+ * Connection to DB.
+ */
+nkDB_connect();
+
+
+/**
+ * Query nuked 'CONFIG_TABLE'.
+ */
+$nuked = array();
+$sql_conf = nkDB_controlPrefix($db_prefix);
+while ($row = mysql_fetch_array($sql_conf)) $nuked[$row['name']] = htmlentities($row['value'], ENT_NOQUOTES);
+unset($sql_conf, $row);
+
+// CONVERT ALL HTML ENTITIES TO THEIR APPLICABLE CHARACTERS
+$nuked['prefix'] = $db_prefix;
+
+
+// FIX TAGS IN NUKED ARRAY
+foreach($nuked as $k => $v){
+    $nuked[$k] = printSecuTags($v);
 }
+
+// INCLUDE CONSTANT TABLE
+include('Includes/constants.php');
+
+// $_REQUEST['file'] & $_REQUEST['op'] DEFAULT VALUE.
+if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
+if (empty($_REQUEST['op'])) $_REQUEST['op'] = 'index';
+
+
+// SELECT THEME, USER THEME OR NOT FOUND THEME : ERROR
+$nuked['user_theme'] = $_REQUEST[$nuked['cookiename'] . '_user_theme'];
+if ($nuked['user_theme'] && is_file(dirname(__FILE__) . '/themes/' . $nuked['user_theme'] . '/theme.php')) $theme = $nuked['user_theme'];
+elseif (is_file(dirname(__FILE__) . '/themes/' . $nuked['theme'] . '/theme.php')) $theme = $nuked['theme'];
+else exit(THEME_NOTFOUND);
+
+// SELECT LANGUAGE AND USER LANGUAGE
+$nuked['user_lang'] = $_REQUEST[$nuked['cookiename'] . '_user_langue'];
+$language = ($nuked['user_lang'] && is_file(dirname(__FILE__) . '/lang/' . $nuked['user_lang'] . '.lang.php')) ? $nuked['user_lang'] : $nuked['langue'];
+
+// FORMAT DATE FR/EN
+if($language == 'french') {
+    // On verifie l'os du serveur pour savoir si on est en windows (setlocale : ISO) ou en unix (setlocale : UTF8)
+    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') setlocale (LC_ALL, 'fr_FR','fra');
+    else setlocale(LC_ALL, 'fr_FR.UTF8','fra');    
+}
+elseif($language == 'english') setlocale(LC_ALL, 'en_US');
+
+// DATE FUNCTION WITH FORMAT AND ZONE FOR DATE
+$dateZone = getTimeZoneDateTime($nuked['datezone']);
+date_default_timezone_set($dateZone);
+    
+
+
+
+
+
+
+// CONFIG PHP SESSION
+if(ini_get('session.save_handler') == 'files') session_set_save_handler('session_open', 'session_close', 'session_read', 'session_write', 'session_delete', 'session_gc');
+
+if(ini_get('suhosin.session.encrypt') == '1'){
+    @ini_set('session.gc_probability', 100);
+    @ini_set('session.gc_divisor', 100);
+    @ini_set('session.gc_maxlifetime', (1440));
+}
+
+session_name('nuked');
+session_start();
+if (session_id() == '') exit(ERROR_SESSION);
+include ('Includes/nkSessions.php');
+
+
+
+
 ?>
