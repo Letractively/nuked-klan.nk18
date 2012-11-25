@@ -14,33 +14,46 @@ defined('INDEX_CHECK') or die ('You can\'t run this file alone.');
 /* Start version fusion 1.8 */
 /* ---------------------------------- */
 
+// Include configuration constants
+if (file_exists('conf.inc.php')) {
+    include('conf.inc.php');
+}
+
+// Sets which PHP errors are reported, use error debug popup
+if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
+    require ROOT_PATH . 'includes/libs/NK_Exception.php';
+}
+
+// Include DB library
+require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
+
 /* Agregation functions : In works... */
 
 /**
- * @todo delete after handle errors
+ * @todo delete !!! after handle errors !!!
  * Connection to database
  * @global type $global
  * @global type $db
  * @global type $language
  */
-function connect() {
-    global $global, $db, $language;
-
-    $db = mysql_connect($global['db_host'], $global['db_user'], $global['db_pass']);
-
-    if (!$db){
-        echo '<div style="text-align: center;">' . ERROR_QUERY . '</div>';
-        exit();
-    }
-
-    $connect = mysql_select_db($global['db_name'], $db);
-    mysql_query('SET NAMES "latin1"');
-        
-    if (!$connect){
-        echo '<div style="text-align: center;">' . ERROR_QUERYDB . '</div>';
-        exit();
-    }
-}
+//function connect() {
+//    global $global, $db, $language;
+//
+//    $db = mysql_connect($global['db_host'], $global['db_user'], $global['db_pass']);
+//
+//    if (!$db){
+//        echo '<div style="text-align: center;">' . ERROR_QUERY . '</div>';
+//        exit();
+//    }
+//
+//    $connect = mysql_select_db($global['db_name'], $db);
+//    mysql_query('SET NAMES "latin1"');
+//        
+//    if (!$connect){
+//        echo '<div style="text-align: center;">' . ERROR_QUERYDB . '</div>';
+//        exit();
+//    }
+//}
 
 function nkDate($timestamp, $blok = FALSE) {
     global $nuked, $language;
@@ -1138,16 +1151,25 @@ include('Includes/constants.php');
 if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
 if (empty($_REQUEST['op'])) $_REQUEST['op'] = 'index';
 
-
 // SELECT THEME, USER THEME OR NOT FOUND THEME : ERROR
-$nuked['user_theme'] = $_REQUEST[$nuked['cookiename'] . '_user_theme'];
-if ($nuked['user_theme'] && is_file(dirname(__FILE__) . '/themes/' . $nuked['user_theme'] . '/theme.php')) $theme = $nuked['user_theme'];
-elseif (is_file(dirname(__FILE__) . '/themes/' . $nuked['theme'] . '/theme.php')) $theme = $nuked['theme'];
-else exit(THEME_NOTFOUND);
+if (isset($_REQUEST[$nuked['cookiename'] . '_user_theme'])
+        && is_file(ROOT_PATH . 'themes/' . $nuked['user_theme'] . '/theme.php')) {
+    $theme = $_REQUEST[$nuked['cookiename'] . '_user_theme'];
+} elseif (is_file(ROOT_PATH . 'themes/' . $nuked['theme'] . '/theme.php')) {
+    $theme = $nuked['theme'];
+} else {
+    exit(THEME_NOTFOUND);
+}
 
 // SELECT LANGUAGE AND USER LANGUAGE
-$nuked['user_lang'] = $_REQUEST[$nuked['cookiename'] . '_user_langue'];
-$language = ($nuked['user_lang'] && is_file(dirname(__FILE__) . '/lang/' . $nuked['user_lang'] . '.lang.php')) ? $nuked['user_lang'] : $nuked['langue'];
+if (isset($_REQUEST[$nuked['cookiename'] . '_user_langue'])
+        && is_file(ROOT_PATH . 'lang/' . $nuked['user_lang'] . '.lang.php')) {
+    $language = $_REQUEST[$nuked['cookiename'] . '_user_langue'];    
+} else {
+    $language =  $nuked['langue'];    
+}
+
+
 
 // FORMAT DATE FR/EN
 if($language == 'french') {

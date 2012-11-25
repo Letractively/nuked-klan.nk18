@@ -17,8 +17,11 @@ define('NK_START_TIME', microtime(true));
 define('INDEX_CHECK', true);
 define('ROOT_PATH', dirname( __FILE__ ) .'/');
 
-include('includes/libs/NK_Exception.php');
-include('includes/libs/NK_MySQL.php');
+
+
+// Kernel
+include('nuked.php');
+
 
 /**
  * Error
@@ -27,7 +30,7 @@ include('includes/libs/NK_MySQL.php');
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'] ) )
 {
     if ( !defined( 'NK_DEBUG' ) ) include ROOT_PATH .'includes/nkDebug.php';
-    nk_Error_DeBug();
+    nkErrorDebug();
 }
  */
 
@@ -41,7 +44,7 @@ if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'
 
 include_once('Includes/php51compatibility.php');
 include('globals.php');
-if(file_exists('conf.inc.php')) include('conf.inc.php');
+
 
 // INCLUDE FATAL ERROR LANG
 include('Includes/fatal_errors.php');
@@ -62,7 +65,7 @@ if (!defined('NK_OPEN')){
     exit();
 }
 
-include('nuked.php');
+
 include_once('Includes/hash.php');
 
 if ($nuked['time_generate'] == 'on'){

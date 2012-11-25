@@ -59,12 +59,15 @@
                     . "\$global['db_pass']  = '".$_SESSION['pass']."';\n"
                     . "\$global['db_name'] = '".$_SESSION['db_name']."';\n"
                     . "\$db_prefix = '".$_SESSION['db_prefix']."';\n"
+                    . "\$db_type = 'MySQL';\n"
                     . "\n"
                     . "define('NK_INSTALLED', true);\n"
                     . "define('NK_OPEN', true);\n"
                     . "define('NK_GZIP', " . GZIP_COMPRESS . ");\n"
                     . "// NE PAS SUPPRIMER! / DO NOT DELETE\n"
                     . "define('HASHKEY', '".$_SESSION['hash']."');\n"
+                    . "\n"
+                    . "define('NK_ERROR_DEBUG', false);\n"
                     . "\n"
                     . "?>";
         $path = dirname(dirname(__FILE__)).'/';

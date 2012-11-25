@@ -13,15 +13,15 @@
  */
 
 /**
- * A global Array with info about database layer and querys
+ * A global Array with info about database layer and queries
  */
 
 $GLOBALS['nkDB'] = array(
-    'database' => 'MySql',
-    'querys' => array(),
+    'database' => 'MySQL',
+    'queries' => array(),
     'error' => false,
     'selects' => array(),
-    'latest_ressource'	=> '',
+    'latest_resource'	=> '',
     'connection' => false,
     'status_connection' => array(),
     'status' => array()
@@ -33,8 +33,8 @@ $GLOBALS['nkDB'] = array(
 // -------------------------------------------------------------------------//
 
 /**
- * Connection to database
- * @return bool : Status of connect to MySql database
+ * Connection to database.
+ * @return bool : Status of connect to MySQL database
  */
 function nkDB_connect()
 {
@@ -95,7 +95,7 @@ function nkDB_disconnect()
 
 
 /**
- * Show version of MySql server
+ * Show version of MySQL server.
  * @return string : Version of Mysql server
  */
 function nkDB_show_version()
@@ -109,7 +109,7 @@ function nkDB_show_version()
 
 
 /**
- * A simple layer to handle select querys
+ * A simple layer to handle select queries.
  * @param string $query : The SQL part, should be database independant
  * @param mixed $order : Array of sorting field
  * @param string $dir : Sorting direction
@@ -164,7 +164,7 @@ function nkDB_select( $query, $order = false, $dir = 'ASC', $limit = false, $off
         $sql .= ' LIMIT '. $offset .', '. $limit;
 
         if ( !is_numeric( $offset ) || !is_numeric( $limit ) ) {
-            $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['querys'] ) - 1] = array(
+            $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['queries'] ) - 1] = array(
                     htmlspecialchars( addslashes( $sql ) ),
                     htmlspecialchars( addslashes( 'Offset and limit must be a numeric vars!' ) )
             );
@@ -174,11 +174,11 @@ function nkDB_select( $query, $order = false, $dir = 'ASC', $limit = false, $off
     }
 
     // Execute the query
-    $ressource = nkDB_execute( $sql );
+    $resource = nkDB_execute( $sql );
 
-    if ( $ressource ) {
+    if ( $resource ) {
         // Build the numeric indexed array of rows of query data
-        while ( $data = mysql_fetch_assoc( $ressource ) ) {
+        while ( $data = mysql_fetch_assoc( $resource ) ) {
             $result[] = $data;
         }
     }
@@ -190,20 +190,24 @@ function nkDB_select( $query, $order = false, $dir = 'ASC', $limit = false, $off
 /**
  * Get the row_count for a query.
  * By default, the latest select query is used
- * @param mixed $ressource : The Mysql Ressource pointer returned by a query. If false, the latest ressource is used
+ * @param mixed $resource : The Mysql Ressource pointer returned by a query. If false, the latest resource is used
  *		So you don't need to specify this parameter if used immediatly after the select query
  * @return int : Number of rows returned by the query
  */
-function nkDB_numRows( $ressource = false )
+function nkDB_numRows( $resource = false )
 {
-    if ( !$ressource ) {
-        $ressource = $GLOBALS['nkDB']['latest_ressource'];
+    if ( !$resource ) {
+        $resource = $GLOBALS['nkDB']['latest_resource'];
     }
 
-    return mysql_num_rows( $ressource );
+    return mysql_num_rows( $resource );
 }
 
-
+/**
+ * Get the number of rows for the query.
+ * @param string $query query to analyse
+ * @return int : number of rows 
+ */
 function nkDB_totalNumRows( $query = false )
 {
     if ( !$query ) {
@@ -221,7 +225,7 @@ function nkDB_totalNumRows( $query = false )
 
 
 /**
- * A simple layer to handle insert querys
+ * A simple layer to handle insert queries.
  * @param string $table : Table name
  * @param array $fields : List of fields to insert
  * @param array $values : List of values to insert, in the same order as $fields
@@ -233,7 +237,7 @@ function nkDB_insert( $table, $fields, $values )
     foreach ( $values as $i => $value ) {
         if ( is_array( $values[$i] ) && count( $values[$i] ) > 1 ) {
             if ( $values[$i][1] == 'no-escape' ) {
-                //$values[$i] = nkDB_escape( $values[$i][0], true ); <-- pas echaper par mysql_real_escape_string ??
+                //$values[$i] = nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ??
                 $values[$i] = $values[$i][0];
             }
         } else {
@@ -249,22 +253,21 @@ function nkDB_insert( $table, $fields, $values )
 
 
 /**
- * Get last inserted id
+ * Get last inserted id.
  * @return mixed : The value of auto-increment field if the query was successful, else returns false
  */
 function nkDB_insert_id()
 {
-    if ( $GLOBALS['nkDB']['latest_ressource'] ) {
+    if ( $GLOBALS['nkDB']['latest_resource'] ) {
         return mysql_insert_id( $GLOBALS['nkDB']['connection'] );
-    }
-    else {
+    } else {
         return false;
     }
 }
 
 
 /**
- * A simple layer to handle update queries
+ * A simple layer to handle update queries.
  * @param string $table : Table name
  * @param array $fields : List of fields to insert
  * @param array $values : List of values to insert, in the same order as $fields
@@ -309,7 +312,7 @@ function nkDB_update( $table, $fields, $values, $where )
 
 
 /**
- * Get the number of affected rows by the last INSERT, UPDATE, REPLACE or DELETE query
+ * Get the number of affected rows by the last INSERT, UPDATE, REPLACE or DELETE query.
  * @return int : The number of affected rows if the query was successful, returns -1 if the last query failed. 
  */
 function nkDB_affected_rows()
@@ -319,7 +322,7 @@ function nkDB_affected_rows()
 
 
 /**
- * A simple layer to handle delete querys
+ * A simple layer to handle delete queries.
  * @param string $table : Table name
  * @param string $where : SQL part to identify the row to delete (ie. "id = 56")
  * if this parameter isn't defined, this requete delete all row in the table
@@ -336,12 +339,14 @@ function nkDB_delete( $table, $where = 'all' )
 
 
 /**
- * Exec queries...
+ * Execution of queries.
+ * @param string $sql : the SQL string to execute
+ * @return mixed : resource or true on success, false on error
  */
 function nkDB_execute( $sql )
 {
     // Save query for debug propose
-    $GLOBALS['nkDB']['querys'][] = $sql;
+    $GLOBALS['nkDB']['queries'][] = $sql;
 
     if ( !$GLOBALS['nkDB']['connection'] ) {
         nkDB_connect();
@@ -349,38 +354,38 @@ function nkDB_execute( $sql )
 
     // For debug time to exec query, move the comment //
     //$sql_start = microtime();
-    $ressource = mysql_query( $sql );
+    $resource = mysql_query( $sql );
     //$sql_time = microtime() - $sql_start;
 
-    if ( $ressource == true ) {
-        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['querys'] ) - 1] = array( 
+    if ( $resource == true ) {
+        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['queries'] ) - 1] = array( 
             htmlspecialchars( addslashes( $sql ) ),
             'ok'
         );
         /*
-        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['querys'] ) - 1] = array( 
+        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['queries'] ) - 1] = array( 
                 htmlspecialchars( addslashes( $sql ) ),
                 'ok',
                 $sql_time
         );
         */
     } else {
-        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['querys'] ) - 1] = array(
+        $GLOBALS['nkDB']['status'][count( $GLOBALS['nkDB']['queries'] ) - 1] = array(
                 htmlspecialchars( addslashes( $sql ) ),
                 htmlspecialchars( addslashes( mysql_error() ) )
         );
         $GLOBALS['nkDB']['error'] = true;
     }
 
-    // Save result ressource in order to perform a row count via mysql_num_rows
-    $GLOBALS['nkDB']['latest_ressource'] = $ressource;
+    // Save result resource in order to perform a row count via mysql_num_rows
+    $GLOBALS['nkDB']['latest_resource'] = $resource;
 
-    return $ressource;
+    return $resource;
 }
 
 
 /**
- * Escape a string for insertion into a text field
+ * Escape a string for insertion into a text field.
  * @param string $value : String to ptotect
  * @param bool $no_quote : If value is enclosed into double quote
  */
@@ -408,10 +413,10 @@ function nkDB_escape( $value, $no_quote = false )
 
 
 /**
- * Formating a date with MySQL
+ * Formating a date with MySQL.
  * @param string $field : Field name ( datetime type)
  * @param string $dateFormat_Mask : Mask of date / hour
- * @return string : The MySql code to using for formated the date
+ * @return string : The MySQL code to using for formated the date
  */
 function nkDB_date_format( $field, $dateFormat_Mask )
 {
@@ -434,7 +439,7 @@ function nkDB_date_format( $field, $dateFormat_Mask )
 // -------------------------------------------------------------------------//
 
 /**
- * List all MySql database ( Only with Mysql )
+ * List all MySQL database ( Only with MySQL ).
  * @return array : Numeric indexed array of rows
  */
 function nkDB_list_db()
@@ -448,26 +453,26 @@ function nkDB_list_db()
     }
 
     // Get list of database name
-    $ressource = mysql_list_dbs( $GLOBALS['nkDB']['connection'] );
+    $resource = mysql_list_dbs( $GLOBALS['nkDB']['connection'] );
 
-    if ( $ressource ) {
+    if ( $resource ) {
         // Build the numeric indexed array of rows of query data
-        while ( $data = mysql_fetch_assoc( $ressource ) ) {
+        while ( $data = mysql_fetch_assoc( $resource ) ) {
             $result[] = $data;
         }
 
-        // Save result ressource in order to perform a row count via mysql_num_rows
-        $GLOBALS['nkDB']['latest_ressource'] = $ressource;
+        // Save result resource in order to perform a row count via mysql_num_rows
+        $GLOBALS['nkDB']['latest_resource'] = $resource;
 
         return $result;
     } else {
-        return $ressource;
+        return $resource;
     }
 }
 
 
 /**
- * Create a table
+ * Create a table.
  * @param string $table : The name of the table
  * @param array $data :  List of fields to create
  * @param bool $drop_table : Drop the table if exists
@@ -571,14 +576,14 @@ function nkDB_create_table( $table, $data, $drop_table = false )
     }
 
     // TYPE ou ENGINE ?
-    $sql .= "\n" . ') TYPE='. $data['MySql-options']['type'];
+    $sql .= "\n" . ') TYPE='. $data['MySQL-options']['type'];
 
     nkDB_execute( $sql );
 }
 
 
 /**
- * Alter a table
+ * Alter a table.
  * @param string $table : The name of the table
  * @param array $action :  Action to alter table
  * @param array $data :  List of fields to alter
@@ -666,7 +671,7 @@ function nkDB_alter_table( $table, $action, $data )
 
 
 // -------------------------------------------------------------------------//
-//                         MySql admin function                             //
+//                         MySQL admin function                             //
 // -------------------------------------------------------------------------//
 
 /**
@@ -679,11 +684,11 @@ function nkDB_show_table_status( $dbname )
     $result = array();
 
     // Execute the query
-    $ressource = nkDB_execute( 'SHOW TABLE STATUS FROM `'. $dbname .'`' );
+    $resource = nkDB_execute( 'SHOW TABLE STATUS FROM `'. $dbname .'`' );
 
-    if ( $ressource ) {
+    if ( $resource ) {
         // Build the numeric indexed array of rows of query data
-        while ( $data = mysql_fetch_assoc( $ressource ) ) {
+        while ( $data = mysql_fetch_assoc( $resource ) ) {
             $result[] = $data;
         }
     }
