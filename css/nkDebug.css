@@ -1,0 +1,43 @@
+table{
+	border:3px solid #FFCC99;
+}
+
+table#connect-status{
+	margin:0;
+}
+
+table#sql-status,table#error{
+	margin:0 auto;
+	width:100%;
+}
+
+table#sql-status{
+	margin-top:20px;
+}
+
+.error{
+	color:red;
+}
+
+.valide{
+	color:green;
+}
+
+h1{
+	color:red;
+}
+
+td.number,th.number{
+	text-align:center;
+	width:5%;
+}
+
+td.type,th.type{
+	text-align:center;
+	width:15%;
+}
+	
+table#sql-status td.left{
+	text-align:center;
+	width:15%;
+}

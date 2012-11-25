@@ -42,25 +42,29 @@ class NK_Exception extends Exception {
     public function showError() {
         // Affichage personnalisé du message d'erreur
         
-        echo 'PHP a généré l\'erreur système suivante : ['.
-        $this->code.' | '.
-        $this->getMessage().'] à la ligne '.
-        $this->line.' du fichier '.$this->file;
+        $errorMsg = printStyle('Error on line ' . $this->getLine() . '<br/> '.
+                            ' in '.$this->getFile() . '<br/> '.
+                            ' Message : ' . $this->getMessage());
+
+        return $errorMsg;
         
+        
+        /*
         // $trace contient le contexte de l'exception
         $trace = $this->getTrace();
-        //print_r($trace);
+        // print_r($trace);
         if (!empty($trace['1']['function'] )) {
-            echo ' sur la fonction '.$trace['1']['function'];
+            echo 'on function '.$trace['1']['function'];
         }
         
-        echo '<br /><br/>Contexte lors de l\'erreur :<br/><pre>';
-        var_dump($GLOBALS['nk_error']);
         // $this->context contient le contexte de l'erreur
-        //print_r($this->context);
+        echo '<br /><br/>Error context :<br/><pre>';
+        // print_r($this->context);
         echo '</pre>';
         
         return false;
+        //var_dump($GLOBALS['nk_error']);
+         */
     }
 
     /**
@@ -71,6 +75,14 @@ class NK_Exception extends Exception {
         
     }
 
+}
+
+/**
+* Print string with style
+* @param string : $str string to custom
+*/
+function printStyle($str) {
+    echo '<pre style="background:white;">' . $str . '</pre>';
 }
 
 /**
@@ -92,6 +104,8 @@ function nkExceptionHandler($exception) {
 function nkErrorHandler2($code, $msg, $file, $line, $context) {
     throw new NK_Exception($code, $msg, $file, $line, $context);
 }
+
+
 
 /**
  * Error management.
@@ -142,7 +156,8 @@ function nkErrorHandler($no, $str, $file, $line, $context) {
             );
             break;
     }
-    var_dump($GLOBALS['nk_error']);
+    return false;
+    //var_dump($GLOBALS['nk_error']);
     //throw new NK_Exception($code, $msg, $file, $line, $context);
 }
 
@@ -151,7 +166,6 @@ set_exception_handler('nkExceptionHandler');
 
 // Define manager errors.
 set_error_handler('nkErrorHandler');
-
 
 
 ?>

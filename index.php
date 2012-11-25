@@ -23,16 +23,8 @@ define('ROOT_PATH', dirname( __FILE__ ) .'/');
 include('nuked.php');
 
 
-/**
- * Error
- */
-/*
-if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'] ) )
-{
-    if ( !defined( 'NK_DEBUG' ) ) include ROOT_PATH .'includes/nkDebug.php';
-    nkErrorDebug();
-}
- */
+
+ 
 
 
 
@@ -47,7 +39,7 @@ include('globals.php');
 
 
 // INCLUDE FATAL ERROR LANG
-include('Includes/fatal_errors.php');
+//include('Includes/fatal_errors.php');
 
 // POUR LA COMPATIBILITE DES ANCIENS THEMES ET MODULES - FOR COMPATIBITY WITH ALL OLD MODULE AND THEME
 if (defined('COMPATIBILITY_MODE') && COMPATIBILITY_MODE == TRUE) extract($_REQUEST);
@@ -73,7 +65,7 @@ if ($nuked['time_generate'] == 'on'){
 }
 
 // GESTION DES ERREURS SQL - SQL ERROR MANAGEMENT
-if(ini_get('set_error_handler')) set_error_handler('erreursql');
+//if(ini_get('set_error_handler')) set_error_handler('erreursql');
 
 $session = session_check();
 $user = ($session == 1) ? secure() : array();
@@ -123,7 +115,7 @@ $theme = trim($theme);
 $language = trim($language);
 
 // Check Ban
-$check_ip = banip();
+//$check_ip = banip();
 
 if (!$user){
     $visiteur = 0;
@@ -260,4 +252,12 @@ else{
 }
 
 nkDB_disconnect();
+
+/**
+ * Error display
+ */
+if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'] ) )
+{
+    include ROOT_PATH .'includes/nkDebug.php';
+}
 ?>
