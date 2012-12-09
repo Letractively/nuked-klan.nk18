@@ -32,13 +32,16 @@ $nkTpl = NK_Tpl::getInstance();
 // Include DB library
 require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
 
+// Include session handler
+require ROOT_PATH . 'includes/nkSessionHandler.php';
+
 /**
  * Try to connect, if false, display a error message.
  */
 function nkTryConnect() {
     global $nkTpl;
     if (!nkDB_connect()) {
-        $nkTpl->nkDisplayError(ERROR_QUERY);
+        echo $nkTpl->nkDisplayError(ERROR_QUERY);
         // TODO Add log
         exit;
     }
@@ -55,7 +58,7 @@ function nkConstructNuked($prefixDB) {
     // Control database prefix before initialize connection.
     $result = nkDB_controlPrefix($prefixDB);
     if (!$result) {
-        $nkTpl->nkDisplayError(DBPREFIX_ERROR);
+        echo $nkTpl->nkDisplayError(DBPREFIX_ERROR);
         // TODO Add log
         exit;
     } else {
@@ -73,8 +76,6 @@ function nkConstructNuked($prefixDB) {
             //$nuked[$value['name']] = $value['value'];
         }
     }
-    
-
     
     return $nuked;
 }
@@ -105,7 +106,6 @@ function nkDate($timestamp, $block = false) {
     } else {
         $format = $nuked['dateformat'];
     }
-    $format = ((($blok === FALSE) ? $nuked['isBlock'] : $blok) === TRUE) ? ($language == 'french') ? '%d/%m/%Y' : '%m/%d/%Y' : $nuked['dateformat'];
     
     // Format date, and convert it to ISO format
     return iconv('UTF-8','ISO-8859-1',strftime($format, $timestamp));
@@ -122,12 +122,12 @@ function printSecuTags($value){
     return $value;
 }
 
-/* -------------------------------------------------------------------------------------*/
 
-/* Agregation functions : In works... */
-
-
-// CURRENT ANNUAL DATEZONE TIME TABLE
+/**
+ * Current annual datezone time table
+ * @param string $GMT
+ * @return string 
+ */
 function getTimeZoneDateTime($GMT) {
     $timezones = array(
         '-1200'=>'Pacific/Kwajalein',
@@ -164,59 +164,11 @@ function getTimeZoneDateTime($GMT) {
     return $timezones[$GMT];
 }
 
-// OPEN PHP SESSION
-function session_open($path, $name){
-    return true;
-}
 
-// CLOSE PHP SESSION
-function session_close(){
-    return true;
-}
+/* -------------------------------------------------------------------------------------*/
 
-// READ PHP SESSION
-function session_read($id){
-    nkTryConnect();
+/* Agregation functions : In works... */
 
-    $sql = mysql_query('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . $id . '"');
-    if(mysql_num_rows($sql) > 0){
-        return ($sql === false) ? '' : mysql_result($sql, 0);
-    }
-}
-
-// WRITE PHP SESSION
-function session_write($id, $data){
-    $id = mysql_escape_string($id);
-    $data = mysql_escape_string($data);
-
-    nkTryConnect();
-
-    $sql = mysql_query('INSERT INTO ' . TMPSES_TABLE . ' (session_id, session_start, session_vars) VALUES ("' . $id . '", ' . time() . ', \'' . $data . '\')');
-
-    if ($sql === false || mysql_affected_rows() == 0) $sql = mysql_query('UPDATE ' . TMPSES_TABLE . ' SET session_vars = \'' . $data . '\' WHERE session_id = "' . $id . '"');
-
-    return $sql !== false;
-}
-
-// DELETE PHP SESSION
-function session_delete($id){
-    nkTryConnect();
-
-    $sql = mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . mysql_escape_string($id) . '"');
-
-    return $sql;
-}
-
-// KILL DEAD SESSION
-function session_gc($maxlife){
-    $time = time() - $maxlife;
-
-    nkTryConnect();
-
-    mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_start < ' . $time);
-
-    return true;
-}
 
 // QUERY BAN FOR USER / VISITOR
 function banip() {

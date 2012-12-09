@@ -186,5 +186,10 @@ set_exception_handler('nkExceptionHandler');
 // Define manager errors.
 set_error_handler('nkErrorHandler');
 
+// Test exception
+/*
+$nkExc = NK_Exception::getInstance();
+ */
+
 
 ?>
