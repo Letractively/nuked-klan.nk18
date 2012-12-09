@@ -197,8 +197,12 @@ function nkDB_numRows( $resource = false )
     if ( !$resource ) {
         $resource = $GLOBALS['nkDB']['latest_resource'];
     }
+    $result = 0;
+     if (is_resource($resource)) {
+         $result = mysql_num_rows( $resource );
+     }
 
-    return mysql_num_rows( $resource );
+    return $result;
 }
 
 /**
@@ -293,11 +297,11 @@ function nkDB_update( $table, $fields, $values, $where )
 
         if ( is_array( $values[$i] ) && count( $values[$i] ) > 1 ) {
             if ( $values[$i][1] == 'no-escape' ) {
-                    $sql .= $values[$i][0];
-                    //$sql .= nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ?
+                $sql .= $values[$i][0];
+                //$sql .= nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ?
             }
         } else {
-                $sql .= nkDB_escape( $values[$i] );
+            $sql .= nkDB_escape( $values[$i] );
         }
 
         $separator = ', ';
@@ -384,7 +388,7 @@ function nkDB_execute( $sql )
 
 /**
  * Escape a string for insertion into a text field.
- * @param string $value : String to ptotect
+ * @param string $value : String to protect
  * @param bool $no_quote : If value is enclosed into double quote
  */
 function nkDB_escape( $value, $no_quote = false )
@@ -397,7 +401,6 @@ function nkDB_escape( $value, $no_quote = false )
         if ( get_magic_quotes_gpc() ) {
             $value = stripslashes( $value );
         }
-
         $value = mysql_real_escape_string( $value, $GLOBALS['nkDB']['connection'] );
         $value = str_replace( '`', '\`', $value );
     }

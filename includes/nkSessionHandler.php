@@ -11,11 +11,11 @@
 
 /**
  * Open session.
- * @param type $path
- * @param type $name
+ * @param string $savePath
+ * @param string $sessionName
  * @return boolean : true session opened 
  */
-function session_open($path, $name){
+function session_open($savePath, $sessionName){
     return true;
 }
 
@@ -29,53 +29,54 @@ function session_close(){
 
 /**
  * Read session.
- * @todo adapt SQL
- * @param type $id : session id
+ * @param string $sessionId : session id
  * @return boolean : true if session read, else false 
  */
-function session_read($id){
+function session_read($sessionId){
     nkTryConnect();
-
-    $sql = mysql_query('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . $id . '"');
-    if (mysql_num_rows($sql) > 0) {
-        return ($sql === false) ? '' : mysql_result($sql, 0);
+    $result = '';
+    $sessionVar = nkDB_select('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . $sessionId . '"');
+    if (nkDB_numRows() > 0 && !empty($sessionVar)) {
+        $result = $sessionVar[0]['session_vars'];
     }
+    return $result;
 }
 
 /**
  * Write session.
- * @todo adapt SQL
- * @param string $id : session id
+ * @param string $sessionId : session id
  * @param string $data
  * @return boolean : true if session wrote, else false 
  */
-function session_write($id, $data){
-    $id = mysql_escape_string($id);
+function session_write($sessionId, $data){
+    $sessionId = mysql_escape_string($sessionId);
     $data = mysql_escape_string($data);
-
+    
     nkTryConnect();
-
-    $sql = mysql_query('INSERT INTO ' . TMPSES_TABLE . ' (session_id, session_start, session_vars) VALUES ("' . $id . '", ' . time() . ', \'' . $data . '\')');
-
-    if ($sql === false || mysql_affected_rows() == 0) {
-        $sql = mysql_query('UPDATE ' . TMPSES_TABLE . ' SET session_vars = \'' . $data . '\' WHERE session_id = "' . $id . '"');
+    
+    $fields = array( 'session_id', 'session_start', 'session_vars' );
+    $values = array( $sessionId, time(), $data );
+    $rs = nkDB_insert( TMPSES_TABLE, $fields, $values );
+    
+    if ($rs === false || nkDB_affected_rows() == 0) {
+        $fields = array('session_vars');
+        $values = array($data);
+        $rs = nkDB_update( TMPSES_TABLE, $fields, $values, 'session_id = "' . $sessionId . '"');
     }
-
-    return $sql !== false;
+    return $rs;
 }
 
 /**
  * Delete session.
- * @todo adapt SQL
  * @param string $id : session id
  * @return mixed : resource if session deleted, else false 
  */
-function session_delete($id){
+function session_delete($sessionId){
     nkTryConnect();
+    
+    $rs = nkDB_delete( TMPSES_TABLE, 'session_id = "' . mysql_escape_string($sessionId). '"' );
 
-    $sql = mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . mysql_escape_string($id) . '"');
-
-    return $sql;
+    return $rs;
 }
 
 /**
@@ -87,8 +88,8 @@ function session_gc($maxlife){
     $time = time() - $maxlife;
 
     nkTryConnect();
-
-    mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_start < ' . $time);
+    
+    $rs = nkDB_delete( TMPSES_TABLE, 'session_start < ' . $time);
 
     return true;
 }
