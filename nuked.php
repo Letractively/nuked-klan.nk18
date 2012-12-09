@@ -25,69 +25,107 @@ if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
     require ROOT_PATH . 'includes/libs/NK_Exception.php';
 }
 
+//Include Light Tpl library
+require ROOT_PATH . 'includes/libs/NK_Tpl.php';
+$nkTpl = NK_Tpl::getInstance();
 
 // Include DB library
 require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
 
-/* Agregation functions : In works... */
-
 /**
- * @todo delete !!! after handle errors !!!
- * Connection to database
- * @global type $global
- * @global type $db
- * @global type $language
+ * Try to connect, if false, display a error message.
  */
-//function connect() {
-//    global $global, $db, $language;
-//
-//    $db = mysql_connect($global['db_host'], $global['db_user'], $global['db_pass']);
-//
-//    if (!$db){
-//        echo '<div style="text-align: center;">' . ERROR_QUERY . '</div>';
-//        exit();
-//    }
-//
-//    $connect = mysql_select_db($global['db_name'], $db);
-//    mysql_query('SET NAMES "latin1"');
-//        
-//    if (!$connect){
-//        echo '<div style="text-align: center;">' . ERROR_QUERYDB . '</div>';
-//        exit();
-//    }
-//}
-
-function nkDate($timestamp, $blok = FALSE) {
-    global $nuked, $language;
-    $format = ((($blok === FALSE) ? $nuked['IsBlok'] : $blok) === TRUE) ? ($language == 'french') ? '%d/%m/%Y' : '%m/%d/%Y' : $nuked['dateformat'];
-    // iconv pour éviter les caractères spéciaux dans la date
-    return iconv('UTF-8','ISO-8859-1',strftime($format, $timestamp));
-    //return iconv('UTF-8','ISO-8859-1',utf8_encode(strftime($format, $timestamp))); // For Windows servers
-
-}
-
-/**
- * Control database prefix before initialize connection.
- * @param string $dbPrefix database prefix
- */
-function nkDB_controlPrefix($prefixDB) {
-    if (!isset($prefixDB)) {
-        exit(DBPREFIX_ERROR);
-    } else {
-        $result = mysql_query('SELECT name, value FROM ' . $prefixDB . '_config');
-        if ($result == false) {
-            exit(DBPREFIX_ERROR);
-        } else {
-            return $result;
-        }
+function nkTryConnect() {
+    global $nkTpl;
+    if (!nkDB_connect()) {
+        $nkTpl->nkDisplayError(ERROR_QUERY);
+        // TODO Add log
+        exit;
     }
 }
 
-// FUNCTION TO FIX PRINTING TAGS
+/**
+ * Construct nuked array and control database prefix before initialization connection.
+ * @param string $prefixDB : prefix database
+ * @return array $nuked : global array construct
+ */
+function nkConstructNuked($prefixDB) {
+    global $nkTpl;
+    $nuked = array();
+    // Control database prefix before initialize connection.
+    $result = nkDB_controlPrefix($prefixDB);
+    if (!$result) {
+        $nkTpl->nkDisplayError(DBPREFIX_ERROR);
+        // TODO Add log
+        exit;
+    } else {
+        // Construct nuked array
+        $nuked['prefix'] = $prefixDB;
+        foreach ($result as $key => $value) {
+            // Old version printSecuTags
+            $nuked[$value['name']] = printSecuTags(htmlentities($value['value'], ENT_NOQUOTES));
+            /**
+             * TODO for fix bad code
+             * 1. remove line before
+             * 2. uncomment line below
+             * 3. remove printSecuTags on all files which call $nuked variable
+             */
+            //$nuked[$value['name']] = $value['value'];
+        }
+    }
+    
+
+    
+    return $nuked;
+}
+
+/**
+ * Convert date format
+ * @global array $nuked
+ * @global string $language language defined
+ * @param string $timestamp timestamp
+ * @param type $block
+ * @return string date converted 
+ */
+function nkDate($timestamp, $block = false) {
+    global $nuked, $language;
+    
+    if ($block === false) {
+        $format = $nuked['isBlock']; // à quoi correspond cette variable ???
+    } else {
+        $format = $block;
+    }
+    
+    if ($format === true) {
+        if ($language == 'french') {
+            $format = '%d/%m/%Y';
+        } else {
+            $format = '%m/%d/%Y';
+        }
+    } else {
+        $format = $nuked['dateformat'];
+    }
+    $format = ((($blok === FALSE) ? $nuked['isBlock'] : $blok) === TRUE) ? ($language == 'french') ? '%d/%m/%Y' : '%m/%d/%Y' : $nuked['dateformat'];
+    
+    // Format date, and convert it to ISO format
+    return iconv('UTF-8','ISO-8859-1',strftime($format, $timestamp));
+    //return iconv('UTF-8','ISO-8859-1',utf8_encode(strftime($format, $timestamp))); // For Windows servers
+}
+
+/**
+ * Fix printing tags.
+ * @param string $value : text to display before filter
+ * @return string text to display after filter
+ */
 function printSecuTags($value){
     $value = htmlentities(html_entity_decode(html_entity_decode($value)));
     return $value;
 }
+
+/* -------------------------------------------------------------------------------------*/
+
+/* Agregation functions : In works... */
+
 
 // CURRENT ANNUAL DATEZONE TIME TABLE
 function getTimeZoneDateTime($GMT) {
@@ -138,7 +176,7 @@ function session_close(){
 
 // READ PHP SESSION
 function session_read($id){
-    nkDB_connect();
+    nkTryConnect();
 
     $sql = mysql_query('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . $id . '"');
     if(mysql_num_rows($sql) > 0){
@@ -151,7 +189,7 @@ function session_write($id, $data){
     $id = mysql_escape_string($id);
     $data = mysql_escape_string($data);
 
-    nkDB_connect();
+    nkTryConnect();
 
     $sql = mysql_query('INSERT INTO ' . TMPSES_TABLE . ' (session_id, session_start, session_vars) VALUES ("' . $id . '", ' . time() . ', \'' . $data . '\')');
 
@@ -162,7 +200,7 @@ function session_write($id, $data){
 
 // DELETE PHP SESSION
 function session_delete($id){
-    nkDB_connect();
+    nkTryConnect();
 
     $sql = mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_id = "' . mysql_escape_string($id) . '"');
 
@@ -173,7 +211,7 @@ function session_delete($id){
 function session_gc($maxlife){
     $time = time() - $maxlife;
 
-    nkDB_connect();
+    nkTryConnect();
 
     mysql_query('DELETE FROM ' . TMPSES_TABLE . ' WHERE session_start < ' . $time);
 
@@ -246,10 +284,10 @@ function get_blok($side){
     
     if ($side == 'gauche') {
         $active = 1;
-        $nuked['IsBlok'] = TRUE;
+        $nuked['isBlock'] = TRUE;
     } else if ($side == 'droite') {
         $active = 2;
-        $nuked['IsBlok'] = TRUE;
+        $nuked['isBlock'] = TRUE;
     } else if ($side == 'centre') {
         $active = 3;
     } else if ($side == 'bas') {
@@ -279,7 +317,7 @@ function get_blok($side){
             if (!empty($blok['content'])) $aff_good_bl($blok);
         }
     }
-    $nuked['IsBlok'] = FALSE;
+    $nuked['isBlock'] = FALSE;
 }
 
 // QUERY IMAGE, BLOCK ALL IMAGE FILE (PHP, HTML ..)
@@ -1077,7 +1115,7 @@ function erreursql($errno, $errstr, $errfile, $errline, $errcontext){
             $content = ob_get_clean();
             // CONNECT TO DB AND OPEN SESSION PHP
             if(file_exists('conf.inc.php')) include ('conf.inc.php');
-            nkDB_connect();
+            nkTryConnect();
             session_name('nuked');
             session_start();
             if (session_id() == '') exit(ERROR_SESSION);
@@ -1094,26 +1132,27 @@ function erreursql($errno, $errstr, $errfile, $errline, $errcontext){
 }
 
 function send_stats_nk() {
-	global $nuked;
-	
-	if($nuked['stats_share'] == "1")
-	{
-		$timediff = (time() - $nuked['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
-		if($timediff >= 60) 
-		{
+    global $nuked;
+
+    if($nuked['stats_share'] == "1")
+    {
+        $timediff = (time() - $nuked['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
+        if($timediff >= 60) 
+        {
 			
-			?>
+            ?>
             <script type="text/javascript" src="modules/Admin/scripts/jquery-1.6.1.min.js"></script>
             <script type="text/javascript">
-			$(document).ready(function() {
-				data="nuked_nude=ajax";
-				$.ajax({url:'index.php', data:data, type: "GET", success: function(html) { 
-				 }});
-			});
-			</script>
+                <![CDATA[
+                $(document).ready(function() {
+                                                data="nuked_nude=ajax";
+                                                $.ajax({ url:'index.php', data:data, type: "GET", success: function(html){} });
+                                                });
+                ]]>
+            </script>
             <?php
-		}
-	}
+        }
+    }
 }
 
 /* ---------------------------------- */
@@ -1126,25 +1165,15 @@ function send_stats_nk() {
 /**
  * Connection to DB.
  */
-nkDB_connect();
+nkTryConnect();
 
 
 /**
  * Query nuked 'CONFIG_TABLE'.
  */
-$nuked = array();
-$sql_conf = nkDB_controlPrefix($db_prefix);
-while ($row = mysql_fetch_array($sql_conf)) $nuked[$row['name']] = htmlentities($row['value'], ENT_NOQUOTES);
-unset($sql_conf, $row);
-
-// CONVERT ALL HTML ENTITIES TO THEIR APPLICABLE CHARACTERS
-$nuked['prefix'] = $db_prefix;
+$nuked = nkConstructNuked($db_prefix);
 
 
-// FIX TAGS IN NUKED ARRAY
-foreach($nuked as $k => $v){
-    $nuked[$k] = printSecuTags($v);
-}
 
 // INCLUDE CONSTANT TABLE
 include('Includes/constants.php');

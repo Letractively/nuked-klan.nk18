@@ -14,12 +14,31 @@
  * @desc Custom class for errors and exceptions management.
  */
 class NK_Exception extends Exception {
+    
+    /**
+     * @var instance
+     * @access private
+     * @static
+     */
+    private static $_instance = null;
 
     /**
      * Constructor.
      */
     public function __construct() {
         $this->activateDisplayErrors();
+    }
+    
+     /**
+      * Single instance of class.
+      * @param void
+      * @return Singleton
+      */
+    public static function getInstance() {
+        if (is_null(self::$_instance)) {
+           self::$_instance = new NK_Exception();
+        }
+        return self::$_instance;
     }
 
     /**

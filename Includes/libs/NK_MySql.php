@@ -81,8 +81,6 @@ function nkDB_connect()
 }
 
 
-
-
 /**
  * Disconnect to database.
  */
@@ -705,6 +703,23 @@ function nkDB_show_table_status( $dbname )
 function nkDB_optimize_table( $name )
 {
     return nkDB_execute( 'OPTIMIZE TABLE `'. $name .'`' );
+}
+
+// -------------------------------------------------------------------------//
+//                             Misc function                        //
+// -------------------------------------------------------------------------//
+
+/**
+ * Control prefix table of config file
+ * @param string $prefixDB : table prefix
+ * @return mixed : false if prefix false, resource if ok
+ */
+function nkDB_controlPrefix($prefixDB) {
+    $result = false;
+    if (isset($prefixDB)) {
+        $result = nkDB_select('SELECT name, value FROM '. $prefixDB . '_config');
+    }
+    return $result;
 }
 
 ?>
