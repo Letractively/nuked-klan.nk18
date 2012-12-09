@@ -44,7 +44,7 @@ function nkDB_connect()
 
     // If $global array don't exist, include main config file
     if ( !is_array( $global ) ) {
-        require dirname( __FILE__ ) .'/../../conf.inc.php';
+        require dirname( __FILE__ ) . '/../../conf.inc.php';
     }
 
     // Open a persistency or normal connection to a MySQL Server
@@ -237,7 +237,7 @@ function nkDB_insert( $table, $fields, $values )
     foreach ( $values as $i => $value ) {
         if ( is_array( $values[$i] ) && count( $values[$i] ) > 1 ) {
             if ( $values[$i][1] == 'no-escape' ) {
-                //$values[$i] = nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ??
+                //$values[$i] = nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ?
                 $values[$i] = $values[$i][0];
             }
         } else {
@@ -296,7 +296,7 @@ function nkDB_update( $table, $fields, $values, $where )
         if ( is_array( $values[$i] ) && count( $values[$i] ) > 1 ) {
             if ( $values[$i][1] == 'no-escape' ) {
                     $sql .= $values[$i][0];
-                    //$sql .= nkDB_escape( $values[$i][0], true ); <-- pas echaper par mysql_real_escape_string ??
+                    //$sql .= nkDB_escape( $values[$i][0], true ); <-- pas échapper par mysql_real_escape_string ?
             }
         } else {
                 $sql .= nkDB_escape( $values[$i] );

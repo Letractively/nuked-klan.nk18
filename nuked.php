@@ -20,9 +20,11 @@ if (file_exists('conf.inc.php')) {
 }
 
 // Sets which PHP errors are reported, use error debug popup
+
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
     require ROOT_PATH . 'includes/libs/NK_Exception.php';
 }
+
 
 // Include DB library
 require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
