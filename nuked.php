@@ -32,8 +32,6 @@ $nkTpl = NK_Tpl::getInstance();
 // Include DB library
 require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
 
-// Include session handler
-require ROOT_PATH . 'includes/nkSessionHandler.php';
 
 /**
  * Try to connect, if false, display a error message.
@@ -164,73 +162,87 @@ function getTimeZoneDateTime($GMT) {
     return $timezones[$GMT];
 }
 
+/**
+ * Query for user / vistor banishment.
+ * @global string $user_ip : ip user
+ * @global array $user : user infos
+ * @global string $language : language for NK
+ */
+function banip() {
+    global $user_ip, $user, $language;
+
+    // Delete last number for dynamic IP's
+    $ipDyn = substr($user_ip, 0, -1);
+
+    // SQL condition : dynamic IP or user account
+    $whereClause = ' WHERE (ip LIKE "%' . $ipDyn . '%") OR pseudo = "' . $user[2] . '"';
+
+    // Search banish
+    $banQuery = nkDB_select('SELECT `id`, `pseudo`, `date`, `dure` FROM ' . BANNED_TABLE . $whereClause);
+
+    // If positive result with banish search, assign new ip
+    if (nkDB_numRows() > 0) {
+        $ipBanned = $user_ip;
+    } else if(isset($_COOKIE['ip_ban']) && !empty($_COOKIE['ip_ban'])) { // Seach cookie banish
+        // On supprime le dernier chiffre de l'adresse IP contenu dans le cookie
+        $ipDynCookie = substr($_COOKIE['ip_ban'], 0, -1);
+
+        // Check IP cookie and current IP address
+        if($ipDynCookie == $ipDyn) {
+            // Check banishment existence
+            $banCookieQuery  = nkDB_select('SELECT `id` FROM ' . BANNED_TABLE . ' WHERE (ip LIKE "%' . $ipDynCookie . '%")');
+            // If positive result, do new ban and assign new IP
+            if (nkDB_numRows() > 0) {
+                $ipBanned = $user_ip;
+            }
+        }
+    } else{
+        $ipBanned = '';
+    }
+
+    // Delete expire banishment or update IP
+    if (!empty($ipBanned)) {
+        // Search expire banishment
+        if ($banQuery[0]['dure'] != 0 && ($banQuery[0]['date'] + $banQuery[0]['dure']) < time()) {
+            // Delete banishment
+            $delBan = nkDB_delete( BANNED_TABLE, $whereClause);
+            // Administration notification           
+            $fields = array( 'date', 'type', 'texte' );
+            $values = array( time(), '4', mysql_real_escape_string($pseudo . _BANFINISHED));
+            $rs = nkDB_insert( BANNED_TABLE, $fields, $values );
+        } else { // update IP address
+            if ($isset($user)) {
+                $whereUser = ', pseudo = "' . $user[2] . '"';
+            } else {
+                $whereUser = '';
+            }
+            $fields = array('ip', 'pseudo');
+            $values = array($user_ip, $whereUser);
+            $rs = nkDB_update( BANNED_TABLE, $fields, $values, 'ip = '. nkDB_escape($user_ip. $whereUser . $whereClause));
+                
+            // Redirection to banish page
+            $urlBan = 'ban.php?ip_ban=' . $ipBanned;
+            if (!empty($user)) {
+                $urlBan .= '&user=' . urlencode($user[2]);
+            }
+            redirect($urlBan, 0);
+        }
+    }
+}
+
 
 /* -------------------------------------------------------------------------------------*/
 
 /* Agregation functions : In works... */
 
 
-// QUERY BAN FOR USER / VISITOR
-function banip() {
-    global $user_ip, $user, $language;
 
-    // On supprime le dernier chiffre pour les IP's dynamiques
-    $ip_dyn = substr($user_ip, 0, -1);
-
-    // Condition SQL : IP dynamique ou compte
-    $where_query = ' WHERE (ip LIKE "%' . $ip_dyn . '%") OR pseudo = "' . $user[2] . '"';
-
-    // Recherche d'un banissement
-    $query_ban = mysql_query('SELECT `id`, `pseudo`, `date`, `dure` FROM ' . BANNED_TABLE . $where_query);
-    $ban = mysql_fetch_assoc($query_ban);
-
-    // Si résultat positif à la recherche d'un bannissement
-    if(mysql_num_rows($query_ban) > 0) {
-        // Nouvelle adresse IP
-        $banned_ip = $user_ip;
-    }
-    // Recherche d'un cookie de banissement
-    else if(isset($_COOKIE['ip_ban']) && !empty($_COOKIE['ip_ban'])) {
-        // On supprime le dernier chiffre de l'adresse IP contenu dans le cookie
-        $ip_dyn2 = substr($_COOKIE['ip_ban'], 0, -1);
-
-        // On vérifie l'adresse IP du cookie et l'adresse IP actuelle
-        if($ip_dyn2 == $ip_dyn) {
-            // On vérifie l'existance du bannissement
-            $query_ban2 = mysql_query('SELECT `id` FROM ' . BANNED_TABLE . ' WHERE (ip LIKE "%' . $ip_dyn2 . '%")');
-            // Si résultat positif, on fait un nouveau ban
-            if(mysql_num_rows($query_ban2) > 0)
-                $banned_ip = $user_ip;
-        }
-    }
-    else{
-        $banned_ip = '';
-    }
-
-    // Suppression des banissements dépassés ou mise à jour de l'IP
-    if(!empty($banned_ip)) {
-        // Recherche banissement dépassé
-        if($ban['dure'] != 0 && ($ban['date'] + $ban['dure']) < time()) {
-            // Suppression bannissement
-            $del_ban = mysql_query('DELETE FROM ' . BANNED_TABLE . $where_query);
-            // Notification dans l'administration
-            $notify = mysql_query("INSERT INTO " . NOTIFICATIONS_TABLE . " (`date` , `type` , `texte`)  VALUES ('" . time() . "', 4, '" . mysql_real_escape_string($pseudo) . mysql_real_escape_string(_BANFINISHED) . "')");
-        }
-        // Sinon on met à jour l'IP
-        else {
-            $where_user = $user ? ', pseudo = "' . $user[2] . '"' : '';
-            $upd_ban = mysql_query('UPDATE ' . BANNED_TABLE . ' SET ip = "' . $user_ip . '"' . $where_user . ' ' . $where_query);
-            // Redirection vers la page de banissement
-            $url_ban = 'ban.php?ip_ban=' . $banned_ip;
-            if(!empty($user)){
-                $url_ban .= '&user=' . urlencode($user[2]);
-            }
-            redirect($url_ban, 0);
-        }
-    }
-}
-
-// DISPLAY ALL BLOCKS
+/**
+ * Display blocks
+ * @global array $user : user information
+ * @global type $nuked
+ * @param type $side : side block to display
+ */
 function get_blok($side){
     global $user, $nuked;
     
@@ -670,7 +682,11 @@ function secu_html($texte){
     }
 }
 
-// REDIRECT AFTER ($tps) SECONDS TO ($url)
+/**
+ * Redirect javascript function
+ * @param type $url : url to redirect
+ * @param type $tps : time in seconds before redirection
+ */
 function redirect($url, $tps){
     $temps = $tps * 1000;
 
@@ -1095,12 +1111,12 @@ function send_stats_nk() {
             ?>
             <script type="text/javascript" src="modules/Admin/scripts/jquery-1.6.1.min.js"></script>
             <script type="text/javascript">
-                <![CDATA[
+                //<![CDATA[
                 $(document).ready(function() {
                                                 data="nuked_nude=ajax";
                                                 $.ajax({ url:'index.php', data:data, type: "GET", success: function(html){} });
                                                 });
-                ]]>
+                //]]>
             </script>
             <?php
         }
@@ -1125,10 +1141,8 @@ nkTryConnect();
  */
 $nuked = nkConstructNuked($db_prefix);
 
-
-
-// INCLUDE CONSTANT TABLE
-include('Includes/constants.php');
+// Include constant table
+include('includes/constants.php');
 
 // $_REQUEST['file'] & $_REQUEST['op'] DEFAULT VALUE.
 if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
@@ -1169,22 +1183,8 @@ date_default_timezone_set($dateZone);
 
 
 
-
-
-
-// CONFIG PHP SESSION
-if(ini_get('session.save_handler') == 'files') session_set_save_handler('session_open', 'session_close', 'session_read', 'session_write', 'session_delete', 'session_gc');
-
-if(ini_get('suhosin.session.encrypt') == '1'){
-    @ini_set('session.gc_probability', 100);
-    @ini_set('session.gc_divisor', 100);
-    @ini_set('session.gc_maxlifetime', (1440));
-}
-
-session_name('nuked');
-session_start();
-if (session_id() == '') exit(ERROR_SESSION);
-include ('Includes/nkSessions.php');
+// Include configuration sessions
+include ROOT_PATH . 'includes/nkSessions.php';
 
 
 
