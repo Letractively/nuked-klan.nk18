@@ -281,7 +281,7 @@ function adminfoot(){
                         echo 'CKEDITOR.config.autoParagraph = false;
                         CKEDITOR.config.enterMode = CKEDITOR.ENTER_BR;';
                     }
-                    echo ConfigSmileyCkeditor();
+                    echo configSmiliesCKEditor();
                     $Video = ($nuked['video_editeur'] == 'on') ? ',Video' : '';
                     echo 'CKEDITOR.config.extraPlugins = \'syntaxhighlight'.$Video.'\';';
                     ?>

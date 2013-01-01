@@ -40,7 +40,9 @@ function nkTryConnect() {
     global $nkTpl;
     if (!nkDB_connect()) {
         echo $nkTpl->nkDisplayError(ERROR_QUERY);
-        // TODO Add log
+        /**
+         * @todo Add log
+         */
         exit;
     }
 }
@@ -57,7 +59,9 @@ function nkConstructNuked($prefixDB) {
     $result = nkDB_controlPrefix($prefixDB);
     if (!$result) {
         echo $nkTpl->nkDisplayError(DBPREFIX_ERROR);
-        // TODO Add log
+        /**
+         * @todo Add log
+         */
         exit;
     } else {
         // Construct nuked array
@@ -66,7 +70,7 @@ function nkConstructNuked($prefixDB) {
             // Old version printSecuTags
             $nuked[$value['name']] = printSecuTags(htmlentities($value['value'], ENT_NOQUOTES));
             /**
-             * TODO for fix bad code
+             * @todo for fix bad code
              * 1. remove line before
              * 2. uncomment line below
              * 3. remove printSecuTags on all files which call $nuked variable
@@ -80,17 +84,17 @@ function nkConstructNuked($prefixDB) {
 
 /**
  * Convert date format
- * @global array $nuked
+ * @global array $nuked 
  * @global string $language language defined
  * @param string $timestamp timestamp
- * @param type $block
+ * @param string $block : date format
  * @return string date converted 
  */
 function nkDate($timestamp, $block = false) {
     global $nuked, $language;
     
     if ($block === false) {
-        $format = $nuked['isBlock']; // à quoi correspond cette variable ???
+        $format = $nuked['isBlock']; // à quoi correspond cette variable, voir function get_blok() ???
     } else {
         $format = $block;
     }
@@ -231,20 +235,14 @@ function banip() {
 }
 
 
-/* -------------------------------------------------------------------------------------*/
-
-/* Agregation functions : In works... */
-
-
-
 /**
- * Display blocks
+ * Display blocks.
  * @global array $user : user information
- * @global type $nuked
- * @param type $side : side block to display
+ * @global array $nuked
+ * @param string $side : side block to display
  */
 function get_blok($side){
-    global $user, $nuked;
+    global $user, $nuked, $nkTpl;
     
     if ($side == 'gauche') {
         $active = 1;
@@ -256,58 +254,94 @@ function get_blok($side){
         $active = 3;
     } else if ($side == 'bas') {
         $active = 4;
+    } else {
+        echo $nkTpl->nkDisplayError(UNKNOWN_BLOCK);
+        /**
+         * @todo Add log
+         */
+        exit;
     }
     
-    $aff_good_bl = 'block_' . $side;
+    // Set the name of the function to call
+    $functionBlock = 'block_' . $side;
 
-    $sql = mysql_query('SELECT bid, active, position, module, titre, content, type, nivo, page FROM ' . BLOCK_TABLE . ' WHERE active = ' . $active . ' ORDER BY position');
-    while ($blok = mysql_fetch_array($sql)){
-        $blok['titre'] = printSecuTags($blok['titre']);
-        $test_page = '';
-        $blok['page'] = explode('|', $blok['page']);
-        $size = count($blok['page']);
-        for($i=0; $i<$size; $i++){
-            if (isset($_REQUEST['file']) && $_REQUEST['file'] == $blok['page'][$i] || $blok['page'][$i] == 'Tous') $test_page = 'ok';
+    // Get list of blocks
+    $blockList = nkDB_select('SELECT bid, active, position, module, titre, content, type, nivo, page FROM ' .
+            BLOCK_TABLE . ' WHERE active = ' . $active . ' ORDER BY position');
+    
+    foreach ($blockList as $block) {
+        $block['titre'] = printSecuTags($block['titre']);
+        // Split each type of block in array
+        $block['page'] = explode('|', $block['page']);
+        // Number of blocks page
+        $size = count($block['page']);
+        
+        // If we find a block page, a flag is set for including the associated block
+        for ($i=0; $i<$size; $i++) {
+            if (isset($_REQUEST['file']) && $_REQUEST['file'] == $block['page'][$i] || $block['page'][$i] == 'Tous') {
+                $findPage = TRUE;
+                break;
+            }
+        }
+        
+        // Level of user
+        if (!empty($user)) {
+            $visiteur = $user[1];
+        } else {
+            $visiteur = 0;
         }
 
-        $visiteur = $user ? $user[1] : 0;
-
-        if ($visiteur >= $blok['nivo'] && $test_page == 'ok'){
-            if(file_exists('Includes/blocks/block_' . $blok['type'] . '.php'))
-                include_once('Includes/blocks/block_' . $blok['type'] . '.php');
-            $function = 'affich_block_' . $blok['type'];
-            $blok = $function($blok);
-
-            if (!empty($blok['content'])) $aff_good_bl($blok);
+        // If page found, we included the associated block
+        if ($visiteur >= $block['nivo'] && isset($findPage)) {
+            if (file_exists('includes/blocks/block_' . $block['type'] . '.php')) {
+                include_once('includes/blocks/block_' . $block['type'] . '.php');
+            }
+            // Call function 'affich_block_*' of NK block
+            $block = call_user_func('affich_block_' . $block['type'], $block);
+            if (!empty($block['content'])) {
+                // Call function block_*' of the theme
+                call_user_func('block_' . $side, $block);
+            }
         }
     }
     $nuked['isBlock'] = FALSE;
 }
 
-// QUERY IMAGE, BLOCK ALL IMAGE FILE (PHP, HTML ..)
+/**
+ * Block display of pictures.
+ * @param string $url : url to block
+ * @return string $url : protected url
+ */
 function checkimg($url){
+    // Get extension of url
     $url = rtrim($url);
     $ext = strrchr($url, '.');
     $ext = substr($ext, 1);
 
-    if (!preg_match('#\.(([a-z]?)htm|php)#i', $url) && substr($url, -1) != '/' && preg_match('#jpg|jpeg|gif|png|bmp#i', $ext) )
-        return $url;
-    else
-        return 'images/noimagefile.gif';
+    if (preg_match('#\.(([a-z]?)htm|php)#i', $url) || substr($url, -1) == '/' || !preg_match('#jpg|jpeg|gif|png|bmp#i', $ext) ) {
+        $url = 'images/noimagefile.gif';
+    }
+        
+    return $url;
 }
 
 /**
- * Replace smilies in text
+ * Replace smilies in text.
  * @param array $matches : text to parse
  * @return string : parsing text
  */
 function replace_smilies($matches)
 {
-  $matches[0] = preg_replace('#<img src=\"(.*)\" alt=\"(.*)\" title=\"(.*)\" />#Usi', '$2', $matches[0]);
-  return $matches[0];
+    $matches[0] = preg_replace('#<img src=\"(.*)\" alt=\"(.*)\" title=\"(.*)\" />#Usi', '$2', $matches[0]);
+    return $matches[0];
 }
 
-// DISPLAYS SMILEYS
+/**
+ * Display smilies.
+ * @global array $nuked
+ * @param string $texte : text to display with smilies
+ * @return string : formatted text
+ */
 function icon($texte){
     global $nuked;
     
@@ -317,10 +351,12 @@ function icon($texte){
     $texte = str_replace('&quot;', '_QUOT_', $texte);
     $texte = str_replace('&#039;', '_SQUOT_', $texte);
     
-
-    $sql = mysql_query("SELECT code, url, name FROM " . SMILIES_TABLE . " ORDER BY id");
-    while (list($code, $url, $name) = mysql_fetch_array($sql)){
-        $texte = str_replace($code, '<img src="images/icones/' . $url . '" alt="" title="' . htmlentities($name) . '" />', $texte);
+    
+    $smiliesList = nkDB_select('SELECT code, url, name FROM ' .
+            SMILIES_TABLE . ' ORDER BY id');
+    
+    foreach($smiliesList as $smiley) {
+        $texte = str_replace($smiley['code'], '<img src="images/icones/' . $smiley['url'] . '" alt="" title="' . htmlentities($smiley['name']) . '" />', $texte);
     }
 
     $texte = str_replace('mailto!', 'mailto:', $texte);
@@ -330,71 +366,86 @@ function icon($texte){
     $texte = str_replace('_SQUOT_', '&#039;', $texte);
     
     // Light calculation if <pre> tag is not present in text
-    if (strpos($texte, '<pre') !== false)
-    {
+    if (strpos($texte, '<pre') !== false) {
         $texte = preg_replace_callback('#<pre(.*)>(.*)<\/pre>#Uis','replace_smilies', $texte);
     }
 
     return $texte;
 }
 
-// SEARCH SMILIES FOR CKEDITOR.
-function ConfigSmileyCkeditor(){
-
-    $donnee = 'CKEDITOR.config.smiley_path=\'images/icones/\';';
-
-    $sql = mysql_query('SELECT code, url, name FROM ' . SMILIES_TABLE . ' ORDER BY id');
-    while($row = mysql_fetch_assoc($sql)){
-        $TabCode[] = addslashes($row['code']);
-        $TabUrl[] = $row['url'];
-        $TabName[] = htmlentities($row['name']);
-    }
-
-    $IUrl = 0;
-    $CompteurUrl = count($TabUrl);
-    $donnee .= 'CKEDITOR.config.smiley_images=[';
-    foreach( $TabUrl as $VUrl ){
-        $IUrl++;
-        $VirguleUrl = ($IUrl == $CompteurUrl) ? '' : ', ';
-        $donnee .= "'$VUrl'$VirguleUrl";
-    }
-    $donnee .= '];';
-
-    $ICode = 0;
-    $CompteurCode = count($TabCode);
-    $donnee .= 'CKEDITOR.config.smiley_descriptions=[';
-    foreach( $TabCode as $VCode ){
-        $ICode++;
-        $VirguleCode = ($ICode == $CompteurCode) ? '' : ', ';
-        $donnee .= "'$VCode'$VirguleCode";
-    }
-    $donnee .= '];';
+/**
+ * Configure smilies for CKEditor.
+ * @return string : string for configuration of CKEditor smilies.
+ * @todo faire une seule requête (stocker les données en globals ?)
+ * car la méthode est appelée 2 fois par affichage de page, ainsi qu'à chaque appel de la méthode icon()
+ */
+function configSmiliesCKEditor(){
+    // Smilies path configuration for CKeditor.
+    $configCK = 'CKEDITOR.config.smiley_path=\'images/icones/\';';
     
-    $IName = 0;
-    $CompteurName = count($TabName);
-    $donnee .= 'CKEDITOR.config.smiley_titles=[';
-    foreach( $TabName as $VName ){
-        $IName++;
-        $VirguleName = ($IName == $CompteurName) ? '' : ', ';
-        $donnee .= "'$VName'$VirguleName";
+    $smiliesList = nkDB_select('SELECT code, url, name FROM ' .
+            SMILIES_TABLE . ' ORDER BY id');
+    
+    // Construct array data for smilies
+    foreach ($smiliesList as $smiley) {
+        $smiliesCode[] = addslashes($smiley['code']);
+        $smiliesUrl[] = $smiley['url'];
+        $smiliesName[] = htmlentities($smiley['name']);
     }
-    $donnee .= '];';
 
-    return $donnee;
+    // Number of smilies
+    $nbSmilies = count($smiliesList);
+    
+    // Build array config images
+    $configCK .= 'CKEDITOR.config.smiley_images=[';
+    for ($i = 0; $i < $nbSmilies - 1; $i++) {
+        $configCK .= '\'' . $smiliesUrl[$i] . '\', ';
+    }
+    $configCK .= '\'' . $smiliesUrl[$nbSmilies] . '\'];';
+    
+    // Build array config descriptions
+    $configCK .= 'CKEDITOR.config.smiley_descriptions=[';
+    for ($i = 0; $i < $nbSmilies - 1; $i++) {
+        $configCK .= '\'' . $smiliesCode[$i] . '\', ';
+    }
+    $configCK .= '\'' . $smiliesCode[$nbSmilies] . '\'];';
+    
+    // Build array config titles
+    $configCK .= 'CKEDITOR.config.smiley_titles=[';
+    for ($i = 0; $i < $nbSmilies - 1; $i++) {
+        $configCK .= '\'' . $smiliesName[$i] . '\', ';
+    }
+    $configCK .= '\'' . $smiliesName[$nbSmilies] . '\'];';
+    
+    return $configCK;
 }
 
-// SECURITY FOR HTTP LINKS.
-function secu_url($url){
-    $info = parse_url(strtolower($url));
-    if ($info !== false){
-        return strrchr($info['path'], '.') != '.php'
-            && (!isset($info['query']) || $info['query'] == '');
-    } else{
-        return false;
-    }
+/**
+ * Secure HTTP links.
+ * @param string $url : url to check
+ * @return boolean : true if url is secure, else false 
+ */
+function secureUrl($url){
+    $urlInfos = parse_url(strtolower($url));
+    $secureUrl = false;
+    // If is not malformed URL and URL does not contain php extension and query
+    if ($urlInfos !== false
+            && strrchr($urlInfos['path'], '.') != '.php'
+            && (!isset($urlInfos['query']) || $urlInfos['query'] == '')) {
+            $secureUrl = true;
+        }
+    return $secureUrl;
 }
 
-// CSS FILTER
+/* -------------------------------------------------------------------------------------*/
+
+/* Agregation functions : In works... */
+
+/**
+ * Secure data for filter CSS.
+ * @param string $Style
+ * @return string data secure 
+ */
 function secu_css($Style){
     $AllowedProprieties = array(
         'display',
@@ -430,7 +481,7 @@ function secu_css($Style){
         if (!in_array($Phased[1], $AllowedProprieties)){
             unset($Style[$id]);
         } elseif (preg_match('/url *\\( *\'?"? *([^ \'"]+) *"?\'?\\)/', $Element, $Phased) > 0){
-            if (!secu_url($Phased[1])){
+            if (!secureUrl($Phased[1])){
                 unset($Style[$id]);
             }
         }
@@ -616,7 +667,7 @@ function secu_args($matches){
                 $args[2][$id] = secu_css($args[2][$id]);
             }
             elseif ($matches[1] == 'img' && $args[1][$id] == 'src'){
-                if(!secu_url($args[2][$id]))
+                if(!secureUrl($args[2][$id]))
                     $args[2][$id] = 'images/noimagefile.gif';
             }
         }
@@ -1186,6 +1237,13 @@ date_default_timezone_set($dateZone);
 // Include configuration sessions
 include ROOT_PATH . 'includes/nkSessions.php';
 
+/* *************************
+ * Functions and variables to review...
+ ************************* */
+
+/**
+ * $nuked['isBlock']
+ */
 
 
 

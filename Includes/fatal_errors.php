@@ -11,6 +11,7 @@ if(substr($_SERVER['HTTP_ACCEPT_LANGUAGE'], 0,2) == 'fr'){
     define('REMOVEDIRINST', 'Veuillez supprimer le dossier d\'installation de Nuked-Klan (/INSTALL/)');
     define('REMOVEINST', 'Veuillez supprimer vos fichiers d\'installation de modules ou de patchs (install.php ou update.php)');
     define('DBPREFIX_ERROR', 'Impossible de se connecter à la base de données ! Vérifier que la variable $db_prefix du fichier conf.inc.php correspond au préfixe de vos tables.');
+    define('UNKNOWN_BLOCK', 'Type de block inconnu');
 }
 else{
     define('ERROR_SESSION', 'Error in creating the anonymous session');
@@ -23,5 +24,6 @@ else{
     define('REMOVEDIRINST', 'Please delete Nuked-Klan\'s installation folder (/INSTALL/)');
     define('REMOVEINST', 'Please delete your installation files for modules or patches (install.php or update.php)');
     define('DBPREFIX_ERROR', 'Can\'t connect to the database ! Check that $db_prefix variable on conf.inc.php file match with your prefix tables.');
+    define('UNKNOWN_BLOCK', 'Inknown type of block');
 }
 ?>

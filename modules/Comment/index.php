@@ -365,7 +365,7 @@ function post_com($module, $im_id){
     echo '<script type="text/javascript" src="media/ckeditor/ckeditor.js"></script>',"\n"
             , '<script type="text/javascript">',"\n"
             , '//<![CDATA[',"\n";
-    echo ConfigSmileyCkeditor().'',"\n";
+    echo configSmiliesCKEditor().'',"\n";
     echo ' CKEDITOR.replace( \'e_basic\',',"\n"
             , '    {',"\n"
             , '        toolbar : \'Basic\',',"\n"

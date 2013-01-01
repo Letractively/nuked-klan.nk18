@@ -189,7 +189,7 @@ else if (($_REQUEST['file'] != 'Admin' AND $_REQUEST['page'] != 'admin') || ( ni
     , '    if(document.getElementById(\'e_basic\')){',"\n"
     , 'CKEDITOR.config.scayt_sLang = "' . (($language == 'french') ? 'fr_FR' : 'en_US') . '";',"\n"
     , (($nuked['scayt_editeur'] == 'on') ? 'CKEDITOR.config.scayt_autoStartup = "true";' : ''),"\n";
-    echo ConfigSmileyCkeditor().'',"\n";
+    echo configSmiliesCKEditor().'',"\n";
     echo ' CKEDITOR.replace( \'e_basic\',',"\n"
     , '    {',"\n"
     , '        toolbar : \'Basic\',',"\n"
@@ -205,7 +205,7 @@ else if (($_REQUEST['file'] != 'Admin' AND $_REQUEST['page'] != 'admin') || ( ni
     echo 'CKEDITOR.config.extraPlugins = \'syntaxhighlight'.$Video.'\';'
     , 'CKEDITOR.config.scayt_sLang = "' . (($language == 'french') ? 'fr_FR' : 'en_US') . '";',"\n"
     , (($nuked['scayt_editeur'] == 'on') ? 'CKEDITOR.config.scayt_autoStartup = "true";' : ''),"\n";
-    echo ConfigSmileyCkeditor().'',"\n";
+    echo configSmiliesCKEditor().'',"\n";
     echo ' CKEDITOR.replace( \'e_advanced\',',"\n"
     , '    {',"\n"
     , '        toolbar : \'Full\',',"\n"
