@@ -330,7 +330,7 @@ function checkimg($url){
  * @param array $matches : text to parse
  * @return string : parsing text
  */
-function replace_smilies($matches)
+function replaceSmilies($matches)
 {
     $matches[0] = preg_replace('#<img src=\"(.*)\" alt=\"(.*)\" title=\"(.*)\" />#Usi', '$2', $matches[0]);
     return $matches[0];
@@ -367,7 +367,7 @@ function icon($texte){
     
     // Light calculation if <pre> tag is not present in text
     if (strpos($texte, '<pre') !== false) {
-        $texte = preg_replace_callback('#<pre(.*)>(.*)<\/pre>#Uis','replace_smilies', $texte);
+        $texte = preg_replace_callback('#<pre(.*)>(.*)<\/pre>#Uis','replaceSmilies', $texte);
     }
 
     return $texte;
@@ -437,17 +437,13 @@ function secureUrl($url){
     return $secureUrl;
 }
 
-/* -------------------------------------------------------------------------------------*/
-
-/* Agregation functions : In works... */
-
 /**
- * Secure data for filter CSS.
- * @param string $Style
+ * Secure data with filtering CSS.
+ * @param string $styles : list of css styles, separe by comma
  * @return string data secure 
  */
-function secu_css($Style){
-    $AllowedProprieties = array(
+function secureCSS($styles){
+    $allowedProperties = array(
         'display',
         'margin-left',
         'margin-right',
@@ -473,26 +469,35 @@ function secu_css($Style){
         'font-size',
         'font-family'
     );
-    $Style = explode(';', $Style);
-    $Style = array_map('trim', $Style);
+    
+    // Prepare each CSS property
+    $styles = explode(';', $styles);
+    $styles = array_map('trim', $styles);
 
-    foreach ($Style as $id=>$Element){
-        preg_match('/ *([^ :]+) *: *(( |.)*)/', $Element, $Phased);
-        if (!in_array($Phased[1], $AllowedProprieties)){
-            unset($Style[$id]);
-        } elseif (preg_match('/url *\\( *\'?"? *([^ \'"]+) *"?\'?\\)/', $Element, $Phased) > 0){
-            if (!secureUrl($Phased[1])){
-                unset($Style[$id]);
+    foreach ($styles as $key => $cssAttribute){
+        // Get authorized CSS attribute in $authAttribute
+        preg_match('/ *([^ :]+) *: *(( |.)*)/', $cssAttribute, $authAttribute);
+        if (!in_array($authAttribute[1], $allowedProperties)) {
+            unset($styles[$key]);
+        } elseif (preg_match('/url *\\( *\'?"? *([^ \'"]+) *"?\'?\\)/', $cssAttribute, $authAttribute) > 0){
+            if (!secureUrl($authAttribute[1])) {
+                unset($styles[$key]);
             }
         }
     }
-    return implode(';', $Style);
+    return implode(';', $styles);
 }
 
-// HTML FILTER
-function secu_args($matches){
+/**
+ * HTML Filter.
+ * @global array $nuked
+ * @param array $matches : list of HTML tags
+ * @return string : HTML filtered
+ */
+function secureArgs($matches){
     global $nuked;
 
+    // List of allowed tags
     $allowedTags = array(
         'p' => array(
             'style',
@@ -615,8 +620,8 @@ function secu_args($matches){
         'address' => array(),
     );
 
-        // FOR VIDEO PLUGIN -- POUR PLUGIN VIDEO
-    $TabVideo = array(
+    // For video plugin
+    $videoTags = array(
         'object' => array(
             'width',
             'height',
@@ -643,115 +648,137 @@ function secu_args($matches){
         ),*/
 
     );
+    
+    // If video editor is activated
+    if ($nuked['video_editeur'] == 'on') {
+        $allowedTags = array_merge($allowedTags, $videoTags);
+    }
 
-    $allowedTags = ($nuked['video_editeur'] == 'on') ? array_merge($allowedTags, $TabVideo) : $allowedTags;
-
+    // If it's a authorized tag
     if (in_array(strtolower($matches[1]), array_keys($allowedTags))) {
+        
+        // Get potential forbidden attributes in $args
         preg_match_all('/([^ =]+)=(&quot;((.(?<!&quot;))*)|[^ ]+)/', $matches[2], $args);
 
-        //Supprime les attributs interdit
-        foreach ($args[1] as $id=>$attribute){
-            if (!in_array($attribute, $allowedTags[$matches[1]]))
-                foreach ($args as $part=>$g)
+        // Delete forbidden attributes
+        foreach ($args[1] as $id => $attribute) {
+            if (!in_array($attribute, $allowedTags[$matches[1]])) {
+                foreach ($args as $part) {
                     unset($args[$part][$id]);
+                }
+            }
         }
 
-        //Met en forme les attributs restants
-        foreach ($args[2] as $id=>$val){
+        // Build remaining attributes
+        foreach ($args[2] as $id => $val) {
             $args[1][$id] = trim(strtolower($args[1][$id]));
             $val = trim($val);
-            if (preg_match('/^&quot;/', $val, $g))
+            if (preg_match('/^&quot;/', $val, $tmp)) {
                 $val .= ';';
+            }
             $args[2][$id] = trim(html_entity_decode($val), " \t\n\r\0\"");
-            if ($args[1][$id] == 'style'){
-                $args[2][$id] = secu_css($args[2][$id]);
-            }
-            elseif ($matches[1] == 'img' && $args[1][$id] == 'src'){
-                if(!secureUrl($args[2][$id]))
+            if ($args[1][$id] == 'style') {
+                $args[2][$id] = secureCSS($args[2][$id]);
+            } elseif ($matches[1] == 'img' && $args[1][$id] == 'src') {
+                if (!secureUrl($args[2][$id])) {
                     $args[2][$id] = 'images/noimagefile.gif';
+                }
             }
         }
 
-        $RetStr = '<' . $matches[1];
+        // Construct tag to return
+        $retStr = '<' . $matches[1];
         foreach ($args[1] as $id=>$attribute){
-            $RetStr .= ' ' . $attribute . '="' . $args[2][$id] . '"';
+            $retStr .= ' ' . $attribute . '="' . $args[2][$id] . '"';
         }
-        if ($matches[3] == '/'){
-            $RetStr .= ' />';
+        if ($matches[3] == '/') {
+            $retStr .= ' />';
+        } else {
+            $retStr .= '>';
         }
-        else{
-            $RetStr .= '>';
-        }
-        return $RetStr;
+        return $retStr;
 
-    // Balise de fermeture
-    }
-    else if (substr($matches[1], 0, 1) == '/' && in_array(strtolower(substr($matches[1], 1)), array_keys($allowedTags))){
+    // End tags
+    } else if (substr($matches[1], 0, 1) == '/' 
+            && in_array(strtolower(substr($matches[1], 1)), array_keys($allowedTags))) {
         return '<' . $matches[1] . '>';
-    // Balises interdites
-    }
-    else{
+    // Forbidden tags
+    } else{
         return $matches[0];
     }
 }
 
-// DISPLAY CONTENT WITH SECURITY CSS AND HTML ($texte)
+/**
+ * Display content with security CSS and HTML
+ * @global string $bgcolor3 : color code defined by theme
+ * @global array $nuked
+ * @global string $language : language of website
+ * @param string $texte : text to secure
+ * @return string : secure text to display
+ */
 function secu_html($texte){
     global $bgcolor3, $nuked, $language;
     
-    // Balise HTML interdite
+    // HTML tag forbidden
     $texte = str_replace(array('&lt;', '&gt;', '&quot;'), array('<', '>', '"'), $texte);
     $texte = stripslashes($texte);
     $texte = htmlspecialchars($texte);
     $texte = str_replace('&amp;', '&', $texte);
     
-    // Balise autorisée
-    $texte = preg_replace_callback('/&lt;([^ &]+)[[:blank:]]?((.(?<!&gt;))*)&gt;/', 'secu_args', $texte);
+    // Authorized tag
+    $texte = preg_replace_callback('/&lt;([^ &]+)[[:blank:]]?((.(?<!&gt;))*)&gt;/', 'secureArgs', $texte);
 
-    preg_match_all('`<(/?)([^/ >]+)(| [^>]*([^/]))>`', $texte, $Tags, PREG_SET_ORDER);
+    preg_match_all('`<(/?)([^/ >]+)(| [^>]*([^/]))>`', $texte, $tags, PREG_SET_ORDER);
 
-    $TagList = array();
+    $tagList = array();
+    // Flag used to determine if $texte is secure or not
     $bad = false;
-    $size = count($Tags);
-    for($i=0; $i<$size; $i++){
-        $TagName = $Tags[$i][3] == ''?$Tags[$i][2].$Tags[$i][4]:$Tags[$i][2];
-        if ($Tags[$i][1] == '/'){
-            $bad = $bad | array_pop($TagList) != $TagName;
+    // Number of tags
+    $size = count($tags);
+    for ($i=0; $i<$size; $i++) {
+        if ($tags[$i][3] == '') {
+            $tagName = $tags[$i][2] . $tags[$i][4];
+        } else {
+           $tagName =  $tags[$i][2];
         }
-        else{
-            array_push($TagList, $TagName);
+        if ($tags[$i][1] == '/'){
+            $bad = $bad | array_pop($tagList) != $tagName;
+        } else {
+            array_push($tagList, $tagName);
         }
     }
 
-    $bad = $bad | count($TagList) > 0;
+    $bad = $bad | count($tagList) > 0;
 
     if ($bad){
-        return(_HTMLNOCORRECT);
+        $texte = _HTMLNOCORRECT;
     }
-    else{
-        return $texte;
-    }
+    return $texte;
 }
 
 /**
- * Redirect javascript function
- * @param type $url : url to redirect
- * @param type $tps : time in seconds before redirection
+ * Redirect javascript function.
+ * @param string $url : url to redirect
+ * @param int $tps : time in seconds before redirection
  */
 function redirect($url, $tps){
     $temps = $tps * 1000;
 
     echo '<script type="text/javascript">',"\n"
-    , '<!--',"\n"
+    , '//<![CDATA[',"\n"
     , "\n"
     , 'function redirect() {',"\n"
     , 'window.location=\'' , $url , '\'',"\n"
     , "}\n"
     , 'setTimeout(\'redirect()\',\'' , $temps ,'\');',"\n"
     , "\n"
-    , '// -->',"\n"
+    , '//]]>',"\n"
     , '</script>',"\n";
 }
+
+/* -------------------------------------------------------------------------------------*/
+
+/* Agregation functions : In works... */
 
 // DISPLAYS THE NUMBER OF PAGES
 function number($count, $each, $link){
