@@ -22,15 +22,15 @@ if (file_exists('conf.inc.php')) {
 // Sets which PHP errors are reported, use error debug popup
 
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
-    require ROOT_PATH . 'includes/libs/NK_Exception.php';
+    require ROOT_PATH . 'Includes/libs/NK_Exception.php';
 }
 
 //Include Light Tpl library
-require ROOT_PATH . 'includes/libs/NK_Tpl.php';
+require ROOT_PATH . 'Includes/libs/NK_Tpl.php';
 $nkTpl = NK_Tpl::getInstance();
 
 // Include DB library
-require ROOT_PATH . 'includes/libs/NK_' . $db_type .'.php';
+require ROOT_PATH . 'Includes/libs/NK_' . $db_type .'.php';
 
 
 /**
@@ -43,7 +43,7 @@ function nkTryConnect() {
         /**
          * @todo Add log
          */
-        exit;
+        return;
     }
 }
 
@@ -62,7 +62,7 @@ function nkConstructNuked($prefixDB) {
         /**
          * @todo Add log
          */
-        exit;
+        return;
     } else {
         // Construct nuked array
         $nuked['prefix'] = $prefixDB;
@@ -171,6 +171,7 @@ function getTimeZoneDateTime($GMT) {
  * @global string $user_ip : ip user
  * @global array $user : user infos
  * @global string $language : language for NK
+ * @todo to review ?
  */
 function banip() {
     global $user_ip, $user, $language;
@@ -212,7 +213,8 @@ function banip() {
             $delBan = nkDB_delete( BANNED_TABLE, $whereClause);
             // Administration notification           
             $fields = array( 'date', 'type', 'texte' );
-            $values = array( time(), '4', mysql_real_escape_string($pseudo . _BANFINISHED));
+            $banQuery[0]['pseudo']  .= ' ' . _BANFINISHED . ' : [<a href=\"index.php?file=Admin&page=user&op=main_ip\">' . _LINK . '</a>]';
+            $values = array( time(), '4', mysql_real_escape_string($banQuery[0]['pseudo']));
             $rs = nkDB_insert( BANNED_TABLE, $fields, $values );
         } else { // update IP address
             if ($isset($user)) {
@@ -237,91 +239,120 @@ function banip() {
 
 /**
  * Display blocks.
- * @global array $user : user information
- * @global array $nuked
+ * @global array user : user informations
+ * @global object $nkTpl : template NK
  * @param string $side : side block to display
  */
-function get_blok($side){
-    global $user, $nuked, $nkTpl;
+function get_blok($side) {
+    global $user, $nkTpl;
+
+    $activeTranslation = array(
+        'gauche' => 1,
+        'droite' => 2,
+        'centre' => 3,
+        'bas' => 4
+    );
+    /**
+     * @todo to delete ?
+     */
+    if ($side == 'gauche' || $side == 'droite') {
+        $nuked['isBlock'] = TRUE;
+    }
     
-    if ($side == 'gauche') {
-        $active = 1;
-        $nuked['isBlock'] = TRUE;
-    } else if ($side == 'droite') {
-        $active = 2;
-        $nuked['isBlock'] = TRUE;
-    } else if ($side == 'centre') {
-        $active = 3;
-    } else if ($side == 'bas') {
-        $active = 4;
+     // Level of user
+    if (!empty($user)) {
+        $visiteur = $user[1];
     } else {
-        echo $nkTpl->nkDisplayError(UNKNOWN_BLOCK);
-        /**
-         * @todo Add log
-         */
-        exit;
+        $visiteur = 0;
     }
-    
-    // Set the name of the function to call
-    $functionBlock = 'block_' . $side;
 
-    // Get list of blocks
-    $blockList = nkDB_select('SELECT bid, active, position, module, titre, content, type, nivo, page FROM ' .
-            BLOCK_TABLE . ' WHERE active = ' . $active . ' ORDER BY position');
-    
-    foreach ($blockList as $block) {
-        $block['titre'] = printSecuTags($block['titre']);
-        // Split each type of block in array
-        $block['page'] = explode('|', $block['page']);
-        // Number of blocks page
-        $size = count($block['page']);
-        
+    if (!array_key_exists($side, $activeTranslation )) {
+        echo $nkTpl->nkDisplayError(UNKNOWN_BLOCK . ' : '. $side);
+        return;
+    }
+
+    if (!function_exists( $themeBlockName = 'block_' . $side )) {
+        echo $nkTpl->nkDisplayError(UNKNOWN_FUNCTION_BLOCK . ' : '. $themeBlockName);
+        return;
+    }
+
+    foreach (getBlockData( $activeTranslation[$side] ) as $block) {
+        $display = FALSE;
+
+        $block['page'] = explode( '|', $block['page'] );
+
         // If we find a block page, a flag is set for including the associated block
-        for ($i=0; $i<$size; $i++) {
-            if (isset($_REQUEST['file']) && $_REQUEST['file'] == $block['page'][$i] || $block['page'][$i] == 'Tous') {
-                $findPage = TRUE;
-                break;
-            }
-        }
-        
-        // Level of user
-        if (!empty($user)) {
-            $visiteur = $user[1];
-        } else {
-            $visiteur = 0;
+        if ((isset($_REQUEST['file']) && in_array($_REQUEST['file'], $block['page'])) || in_array('Tous', $block['page'])) {
+            $display = TRUE;
         }
 
-        // If page found, we included the associated block
-        if ($visiteur >= $block['nivo'] && isset($findPage)) {
-            if (file_exists('includes/blocks/block_' . $block['type'] . '.php')) {
-                include_once('includes/blocks/block_' . $block['type'] . '.php');
+        if ($visiteur >= $block['nivo'] && $display) {
+            $block['titre'] = printSecuTags($block['titre']);
+
+            include_once 'Includes/blocks/block_'. $block['type'] .'.php';
+
+            if (function_exists($blockFunction = 'affich_block_'. $block['type'])) {
+                $block = $blockFunction( $block );
+            } else {
+                echo $nkTpl->nkDisplayError(UNKNOWN_FUNCTION_DISPLAY_BLOCK . ' : '. $blockFunction);
+                return;
             }
-            // Call function 'affich_block_*' of NK block
-            $block = call_user_func('affich_block_' . $block['type'], $block);
-            if (!empty($block['content'])) {
-                // Call function block_*' of the theme
-                call_user_func('block_' . $side, $block);
+
+            if (!empty( $block['content'] )) {
+                $themeBlockName( $block );
             }
         }
     }
+    /**
+     * @todo to delete ?
+     */
     $nuked['isBlock'] = FALSE;
 }
 
 /**
- * Block display of pictures.
- * @param string $url : url to block
- * @return string $url : protected url
+ * Get selected block to display (used like cache).
+ * @staticvar array $data : list of blocks
+ * @param type $activeSelected : key used to selected block
+ * @return array : block selected
+ */
+function getBlockData($activeSelected) {
+    static $data = array();
+
+    if (empty($data)) {
+        // Get list of blocks
+        $blockList = nkDB_select('SELECT bid, active, position, module, titre, content, type, nivo, page FROM ' .
+                                                    BLOCK_TABLE . ' ORDER BY position');
+        
+        foreach ($blockList as $block) {
+            $data[$block['active']][] = array(
+                    'bid'		=> $block['bid'],
+                    'position'	=> $block['position'],
+                    'module'	=> $block['module'],
+                    'titre'		=> $block['titre'],
+                    'content'	=> $block['content'],
+                    'type'		=> $block['type'],
+                    'nivo'		=> $block['nivo'],
+                    'page'		=> $block['page']
+            );
+        }
+    }
+
+    if (array_key_exists( $activeSelected, $data )) {
+        return $data[$activeSelected];
+    }
+    return array();
+}
+
+/**
+ * Display pictures if url is correct
+ * @param string $url : url to check
+ * @return string $url : secure url picture
  */
 function checkimg($url){
-    // Get extension of url
     $url = rtrim($url);
-    $ext = strrchr($url, '.');
-    $ext = substr($ext, 1);
-
-    if (preg_match('#\.(([a-z]?)htm|php)#i', $url) || substr($url, -1) == '/' || !preg_match('#jpg|jpeg|gif|png|bmp#i', $ext) ) {
+    if (!in_array( pathinfo( $url, PATHINFO_EXTENSION ), array( 'jpg', 'jpeg', 'gif', 'png', 'bmp' ))) {
         $url = 'images/noimagefile.gif';
     }
-        
     return $url;
 }
 
@@ -351,9 +382,7 @@ function icon($texte){
     $texte = str_replace('&quot;', '_QUOT_', $texte);
     $texte = str_replace('&#039;', '_SQUOT_', $texte);
     
-    
-    $smiliesList = nkDB_select('SELECT code, url, name FROM ' .
-            SMILIES_TABLE . ' ORDER BY id');
+    $smiliesList = getSmiliesData();
     
     foreach($smiliesList as $smiley) {
         $texte = str_replace($smiley['code'], '<img src="images/icones/' . $smiley['url'] . '" alt="" title="' . htmlentities($smiley['name']) . '" />', $texte);
@@ -374,17 +403,28 @@ function icon($texte){
 }
 
 /**
+ * Get smilies data (used like cache).
+ * @return array : all smilies data sorting by id
+ */
+function getSmiliesData() {
+    static $smileyData = array();
+
+    if (empty($smileyData)) {
+        $smileyData= nkDB_select( 'SELECT `code`, `url`, `name` FROM `'. SMILIES_TABLE .'` ORDER BY `id`' );
+    }
+
+    return $smileyData;
+}
+
+/**
  * Configure smilies for CKEditor.
  * @return string : string for configuration of CKEditor smilies.
- * @todo faire une seule requête (stocker les données en globals ?)
- * car la méthode est appelée 2 fois par affichage de page, ainsi qu'à chaque appel de la méthode icon()
  */
 function configSmiliesCKEditor(){
     // Smilies path configuration for CKeditor.
     $configCK = 'CKEDITOR.config.smiley_path=\'images/icones/\';';
     
-    $smiliesList = nkDB_select('SELECT code, url, name FROM ' .
-            SMILIES_TABLE . ' ORDER BY id');
+    $smiliesList = getSmiliesData();
     
     // Construct array data for smilies
     foreach ($smiliesList as $smiley) {
@@ -776,95 +816,152 @@ function redirect($url, $tps){
     , '</script>',"\n";
 }
 
-/* -------------------------------------------------------------------------------------*/
-
-/* Agregation functions : In works... */
-
-// DISPLAYS THE NUMBER OF PAGES
-function number($count, $each, $link){
-
-    $current = $_REQUEST['p'];
-
-    if ($each > 0){
-        if ($count <= 0)     $count   = 1;
-        if (empty($current)) $current = 1; // On renormalise la page courante...
-        // Calcul du nombre de pages
-        $n = ceil($count / intval($each)); // on arrondit à  l'entier sup.
-        // Début de la chaine d'affichage
-        $output = '<b class="pgtitle">' . _PAGE . ' :</b> ';
+/**
+  * Create a page link list
+ * @param int $total : The total number of subject
+ * @param int $limit : The number of subjects per page
+ * @param string $url : The basic url to redirect at page
+ */
+function number($total, $limit, $url){
+    
+    $currentPage = $_REQUEST['p'];
+    
+    // If data is correct, we can build pagination
+    if ($limit > 0 && $total > $limit) {
+        if ($total <= 0) {
+            $total   = 1;
+        }
+        // Current page
+        if (!empty($currentPage)){
+            $currentPage = $_REQUEST['p'];
+        } else {
+            $currentPage = 1;
+        }
+        // Number of pages
+        $nbPages = ceil($total / intval($limit));
+        // Start string to output display
+        $output = '<div class="pages-links"><b class="pgtitle">' . _PAGE . ' :</b>&nbsp;';
         
-        for ($i = 1; $i <= $n; $i++){
-            if ($i == $current){
-                $output .= sprintf('<b class="pgactuel">[%d]</b> ',$i    );
-            }
-            // On est autour de la page actuelle : on affiche
-            elseif (abs($i - $current) <= 4){
-                $output .= sprintf('<a href="' . $link . '&amp;p=%d" class="pgnumber">%d</a> ',$i, $i);
-            }
-            // On affiche quelque chose avant d'omettre les pages inutiles
-            else{
-                // On est avant la page courante
-                if (!isset($first_done) && $i < $current){
-                    $output .= sprintf('...<a href="' . $link . '&amp;p=%d" title="' . _PREVIOUSPAGE . '" class="pgback">&laquo;</a> ',$current-1);
-                    $first_done = true;
-                }
-                // Après la page courante
-                elseif (!isset($last_done) && $i > $current){
-                    $output .= sprintf('<a href="' . $link . '&amp;p=%d" title="' . _NEXTPAGE . '" class="pgnext">&raquo;</a>... ',$current+1);
-                    $last_done = true;
-                }
-                // On a dépassé les cas qui nous intéressent : inutile de continuer
-                elseif ($i > $current)
+        // Build links for each page
+        for ($i = 1; $i <= $nbPages; $i++) {
+            // Current page
+            if ($i == $currentPage){
+                $output .= sprintf('<b class="pgactuel">[%d]</b> ',$i);
+                // Links near current page
+            } elseif (abs($i - $currentPage) <= 4) {
+                $output .= sprintf('<a href="' . $url . '&amp;p=%d" class="pgnumber">%d</a> ',$i, $i);
+                // Display text before forget unnecessary pages
+            } else{
+                // Before current page
+                if (!isset($firstDone) && $i < $currentPage) {
+                    $output .= sprintf('...<a href="' . $url . '&amp;p=%d" title="' . _PREVIOUSPAGE . '" class="pgback">&laquo;</a> ',$currentPage-1);
+                    $firstDone = true;
+                    // After current page
+                } elseif (!isset($lastDone) && $i > $currentPage) {
+                    $output .= sprintf('<a href="' . $url . '&amp;p=%d" title="' . _NEXTPAGE . '" class="pgnext">&raquo;</a>... ',$currentPage+1);
+                    $lastDone = true;
+                    // Exceed interesting pages : we stop
+                } elseif ($i > $currentPage) {
                     break;
+                }
             }
         }
-        $output .= '<br />';
+        $output .= '</div>';
+        
         echo $output;
     }
 }
 
+/**
+ * Count the number of current visitors.
+ * @global array $user : user informations
+ * @global array $nuked
+ * @global string $user_ip : user IP address
+ * @return int : number of visitors
+ *  [0] = visitors
+ *  [1] = members
+ *  [2] = admin
+ *  [3] = members + admin;
+ *  [4] = visitors + members + admin
+ */
 function nbvisiteur(){
     global $user, $nuked, $user_ip;
 
-    $limite = time() + $nuked['nbc_timeout'];
-    $time = time();
+    static $count = array();
 
-    $req = mysql_query("DELETE FROM " . NBCONNECTE_TABLE . " WHERE date < '" . $time."'");
+    if (empty($count)) {
+        $time = time();
+        $limite = $time + (int) $nuked['nbc_timeout'];
 
-    if (isset($user_ip)){
-        if (isset($user[0])){
-            $where = "WHERE user_id='" . $user[0] . "'";
-        }
-        else{
-            $where = "WHERE IP='" . $user_ip . "'";
-        }
-        $req = mysql_query("SELECT IP FROM " . NBCONNECTE_TABLE . " " . $where);
-        $query = mysql_num_rows($req);
+        $rsDel = nkDB_delete(NBCONNECTE_TABLE, 'date < ' . nkDB_escape($time));
 
-        if ($query > 0){
-            if (isset($user[0])){
-                $req = mysql_query("UPDATE " . NBCONNECTE_TABLE . " SET date = '" . $limite . "', type = '" . $user[1] . "', IP = '" . $user_ip . "', username = '" . $user[2] . "' WHERE user_id = '" . $user[0] . "'");
-            }
-            else{
-                $req = mysql_query("UPDATE " . NBCONNECTE_TABLE . " SET date = '" . $limite . "', type = '" . $user[1] . "', user_id = '" . $user[0] . "', username = '" . $user[2] . "' WHERE IP = '" . $user_ip . "'");
-            }
+        if (isset($user_ip)) {
+            updateUserConnectData($user, $user_ip, $limite);
         }
-        else{
-            $del = mysql_query("DELETE FROM " . NBCONNECTE_TABLE . " WHERE IP = '" . $user_ip . "'");
-            $req = mysql_query("INSERT INTO " . NBCONNECTE_TABLE . " ( `IP` , `type` , `date` , `user_id` , `username` ) VALUES ( '" . $user_ip . "' , '" . $user[1] . "' , '" . $limite . "' , '" . $user[0] . "' , '" . $user[2] . "' )");
-        }
+
+        $req = nkDB_select('SELECT COUNT(*) AS recordcount FROM '. NBCONNECTE_TABLE .' WHERE type = 0' );
+        $nb_visitor = $req[0]['recordcount'];
+        
+        $req = nkDB_select( 'SELECT COUNT(*) AS recordcount FROM '. NBCONNECTE_TABLE .' WHERE type BETWEEN 1 AND 2' );
+        $nb_member = $req[0]['recordcount'];
+
+        $req = nkDB_select( 'SELECT COUNT(*) AS recordcount FROM '. NBCONNECTE_TABLE .' WHERE type > 2' );
+        $nb_admin = $req[0]['recordcount'];
+
+        $count[0] = $nb_visitor;
+        $count[1] = $nb_member;
+        $count[2] = $nb_admin;
+        $count[3] = $nb_member + $nb_admin;
+        $count[4] = $nb_visitor + $count[3];
     }
 
-    $res = mysql_query("SELECT type FROM " . NBCONNECTE_TABLE . " WHERE type = 0");
-    $count[0] = mysql_num_rows($res);
-    $res = mysql_query("SELECT type FROM " . NBCONNECTE_TABLE . " WHERE type BETWEEN 1 AND 2");
-    $count[1] = mysql_num_rows($res);
-    $res = mysql_query("SELECT type FROM " . NBCONNECTE_TABLE . " WHERE type > 2");
-    $count[2] = mysql_num_rows($res);
-    $count[3] = $count[1] + $count[2];
-    $count[4] = $count[0] + $count[3];
     return $count;
 }
+
+/**
+ * Update data user connections (used like cache).
+ * @param array $user : user informations
+ *  [0] = id visitor
+ *  [1] = user level
+ *  [2] = pseudo
+ *  [3] = IP address
+ *  [4] = number of new messages unread
+ * @param type $user_ip : user IP address
+ * @param int $limite : date limit
+ */
+function updateUserConnectData($user, $user_ip, $limite) {
+    
+    // Get IP address of visitor
+    if (isset($user[0])) {
+        $req = nkDB_select('SELECT IP FROM '. NBCONNECTE_TABLE .' WHERE user_id = '. nkDB_escape($user[0]));
+    } else {
+        $req = nkDB_select('SELECT IP FROM '. NBCONNECTE_TABLE .' WHERE IP = '. nkDB_escape($user_ip));
+    }
+
+    // If IP address exists, update user informations
+    if (nkDB_numRows() > 0) {
+        if (isset($user[0])) {
+            $fieldsUserSet = array('date', 'type', 'IP', 'username');
+            $valuesUserSet = array($limite, (int) $user[1], $user_ip, $user[2]);
+            $rs = nkDB_update(NBCONNECTE_TABLE, $fieldsUserSet, $valuesUserSet, 'user_id = '. nkDB_escape($user[0]));
+        } else {
+            $fields = array('date', 'type', 'user_id', 'username');
+            $values = array($limite, (int) $user[1], $user[0], $user[2]);
+            $rs = nkDB_update(NBCONNECTE_TABLE, $fieldsUserSet, $valuesUserSet, 'IP = '. nkDB_escape($user_ip));
+        }
+    } else {  // If not, add IP address of user (delete this if it exists before)
+        $rsDel = nkDB_delete(NBCONNECTE_TABLE, 'IP = ' . nkDB_escape($user_ip));
+        
+        $fields = array('`IP`', '`type`', '`date`', '`user_id`', '`username`');
+        $values = array($user_ip, (int) $user[1], $limite, $user[0], $user[2]);
+        $rsIns = nkDB_insert(NBCONNECTE_TABLE, $fields, $values);
+        
+    }
+}
+
+/* -------------------------------------------------------------------------------------*/
+
+/* Agregation functions : In works... */
 
 function nivo_mod($mod){
     $sql = mysql_query("SELECT niveau FROM " . MODULES_TABLE . " WHERE nom = '" . $mod . "'");
@@ -1220,7 +1317,7 @@ nkTryConnect();
 $nuked = nkConstructNuked($db_prefix);
 
 // Include constant table
-include('includes/constants.php');
+include('Includes/constants.php');
 
 // $_REQUEST['file'] & $_REQUEST['op'] DEFAULT VALUE.
 if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
@@ -1262,15 +1359,100 @@ date_default_timezone_set($dateZone);
 
 
 // Include configuration sessions
-include ROOT_PATH . 'includes/nkSessions.php';
+include ROOT_PATH . 'Includes/nkSessions.php';
 
 /* *************************
  * Functions and variables to review...
  ************************* */
 
 /**
- * $nuked['isBlock']
+ * $nuked['isBlock'] to delete
  */
+
+/**
+ * New pagination function (number()) ?
+ * Create a page link list
+ * @param int $total : The total number of subject
+ * @param int $limit : The number of subjects per page
+ * @param string $url : The basic url to redirect at page
+ */
+/*
+function number($total, $limit, $url){
+    
+    $currentPage = $_REQUEST['p'];
+    
+    // If data is correct, we can build pagination
+    if ($limit > 0 && $total > $limit) {
+        if ($total <= 0) {
+            $total   = 1;
+        }
+        // Current page
+        if (!empty($currentPage)){
+            $currentPage = $_REQUEST['p'];
+        } else {
+            $currentPage = 1;
+        }
+        // Number of pages
+        $nbPages = ceil($total / intval($limit));
+        // Start string to output display
+        $output = '<div class="pages-links"><b class="pgtitle">' . _PAGE . ' :</b>&nbsp;';
+        
+        // Value of startup loop
+        if ($current <= 2) {
+            $start = 1;
+        } else {
+            $start = $current - 2;
+        }
+        // Value of end loop
+        if (($current + 3) > $nbPages) {
+            $end = $nbPages;
+        } else {
+            $end = $current + 3;
+        }
+
+        if (($current - 3) >= 1) {
+            $output .= sprintf( '<a id="nkPage-1" href="%s&amp;p=%d" title="%s">1</a>&nbsp;', $url, 1, _FIRSTPAGE );
+        }
+
+        // It shows something to show that there are pages omitted if necessary
+        if ($current > 4) {
+            $output .= '...&nbsp;';
+        }
+
+        for ($i = $start; $i <= $end; $i++) {
+            // If it's the curent page
+            if ( $i == $current ) {
+                $output .= sprintf( '<b class="page-active">[%d]</b>&nbsp;', $i );
+            } else {
+                $output .= sprintf( '<a id="nkPage-%1$d" href="%2$s&amp;p=%1$d">%1$d</a>&nbsp;', $i, $url );
+            }
+        }
+
+        // It shows something to show that there are pages omitted if necessary
+        if (($end + 1) < $nbPages) {
+            $output .= '...&nbsp;';
+        }
+
+        // Number of decade to total pages
+        $nbDecade = floor($nbPages / 10);
+
+        // Number of first decade to display
+        $firstDecade = ceil(($current + 5) / 10);
+
+        for ($i = $firstDecade; $i <= $nbDecade; $i++) {
+            $output .= sprintf( '<a id="nkPage-%d0" href="%s&amp;p=%d0">%d0</a>&nbsp;', $i, $url, $i, $i );
+        }
+
+        if (($current + 4) <= $n) {
+            $output .= sprintf( '<a id="nkPage-%1$d" href="%2$s&amp;p=%1$d" title="%3$s">%1$d</a>', $n, $url, _LASTPAGE );
+        }
+
+        $output .= '</div>';
+        
+        echo $output;
+    }
+}
+ * */
 
 
 

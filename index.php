@@ -258,6 +258,6 @@ nkDB_disconnect();
  */
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'] ) )
 {
-    include ROOT_PATH .'includes/nkDebug.php';
+    include ROOT_PATH .'Includes/nkDebug.php';
 }
 ?>
