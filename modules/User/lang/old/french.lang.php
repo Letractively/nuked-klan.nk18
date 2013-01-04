@@ -1,18 +1,4 @@
 <?php
-
-define("_LOGIN","Login");
-define("_IDENTIFIER","Identifiant");
-define("_PASSWORD","Password");
-define("_CONNECTION","Connexion");
-define("_REGISTRATION","Inscription");
-define("_PASSFORGET","Mot de passe oublié");
-define("_ADMINS","Admins");
-define("_MEMBERS","Membres");
-define("_VISITORS","Visiteurs");
-define("_LASTMEMBER","Dernier membre");
-
-
-/*
 if (!defined("INDEX_CHECK")){
 	exit('You can\'t run this file alone.');
 }
@@ -184,5 +170,4 @@ define("_PASSWEAK", "Faible");
 define("_PASSMEDIUM", "Moyen");
 define("_PASSHIGH", "Elevé");
 define("_PASSCHECK", "Niveau de sécurité du mot de passe");
-*/
 ?>

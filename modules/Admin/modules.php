@@ -296,17 +296,17 @@ if ($visiteur == 9)
     {
         case "update_module":
             update_module($_REQUEST['mid'], $_REQUEST['niveau'], $_REQUEST['level']);
-            UpdateSitmap();
+            updateSitemapXML();
         	break;
 
         case "desactive":
             desactive($_REQUEST['mid']);
-        	UpdateSitmap();
+        	updateSitemapXML();
             break;
 
         case "active":
             active($_REQUEST['mid']);
-        	UpdateSitmap();
+        	updateSitemapXML();
             break;
 
         case "edit_module":

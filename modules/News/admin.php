@@ -670,7 +670,7 @@ if ($visiteur >= $level_admin && $level_admin > -1) {
 		case "do_add":
 			admintop();
 			do_add($_REQUEST['titre'], $_REQUEST['texte'], $_REQUEST['suite'], $_REQUEST['cat'], $_REQUEST['jour'], $_REQUEST['mois'], $_REQUEST['annee'], $_REQUEST['heure']);
-			UpdateSitmap();
+			updateSitemapXML();
 			adminfoot();
 			break;
 
