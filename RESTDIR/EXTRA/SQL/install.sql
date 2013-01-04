@@ -371,13 +371,6 @@ CREATE TABLE IF NOT EXISTS `nuked_downloads_cat` (
 --
 
 DROP TABLE IF EXISTS `nuked_erreursql`;
-CREATE TABLE IF NOT EXISTS `nuked_erreursql` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `date` varchar(30) COLLATE latin1_general_ci NOT NULL DEFAULT '0',
-  `lien` text COLLATE latin1_general_ci NOT NULL,
-  `texte` text COLLATE latin1_general_ci NOT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci AUTO_INCREMENT=1 ;
 
 -- --------------------------------------------------------
 

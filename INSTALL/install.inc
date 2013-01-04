@@ -324,19 +324,6 @@
                         $req = mysql_query($sql) or die (mysql_error());
                         echo 'OK';
         break;
-        case'erreursql':
-                        $sql = "DROP TABLE IF EXISTS `" . $db_prefix . "_erreursql`";
-                        $req = mysql_query($sql) or die (mysql_error());                        
-                        $sql = "CREATE TABLE `" . $db_prefix . "_erreursql` (
-                          `id` int(11) NOT NULL auto_increment,
-                          `date` varchar(30) NOT NULL default '0',
-                          `lien`  text NOT NULL,
-                          `texte`  text NOT NULL,
-                          PRIMARY KEY  (`id`)
-                        ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci;";
-                        $req = mysql_query($sql);
-                        echo 'OK';
-        break;
         case'forums':
                         $sql = "DROP TABLE IF EXISTS `" . $db_prefix . "_forums`";
                         $req = mysql_query($sql) or die (mysql_error());                        

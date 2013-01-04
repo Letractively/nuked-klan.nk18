@@ -4,14 +4,14 @@ var install = false;
 var ajaxBusy = false;
 var arrayTablesInstall = new Array(
                             "action", "banned", "block", "calendar", "comment", "comment_mod", "config", "contact", "defie", "discussion", "downloads",
-                            "downloads_cat", "erreursql", "forums", "forums_cat", "forums_messages", "forums_threads", "forums_rank",
+                            "downloads_cat", "forums", "forums_cat", "forums_messages", "forums_threads", "forums_rank",
                             "forums_reads", "forums_poll", "forums_options", "forums_vote", "gallery", "gallery_cat", "games", "games_prefs", "guestbook",
                             "irc_awards", "liens", "liens_cat", "match", "match_files", "modules", "nbconnecte", "news", "news_cat", "notification", "recrute", "sections",
                             "sections_cat", "serveur", "serveur_cat", "sessions", "smilies", "sondage", "sondage_check", "sondage_data", "stats", "stats_visitor",
                             "suggest", "shoutbox", "team", "team_rank", "tmpses", "userbox", "users", "users_detail", "vote"
                         );
 var arrayTablesUpdate = new Array(
-                            "table_action", "table_banned", "table_comment_mod", "table_contact", "table_discussion", "table_erreursql", "table_games", "table_match", "table_match_files",
+                            "table_action", "table_banned", "table_comment_mod", "table_contact", "table_discussion", "table_games", "table_match", "table_match_files",
                             "table_notification", "table_tmpses", "table_users", "table_smilies", "update_bbcode", "update_config", "update_pass", "remove_style", "remove_editeur", "remove_package_manager",
                             "remove_turkish.lang.php", "table_forums_read"
                         );

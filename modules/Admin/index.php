@@ -85,12 +85,6 @@ if ($visiteur >= 2)
             </li>
 
             <li>
-                <a class="shortcut-button" href="index.php?file=Admin&amp;page=erreursql">
-                    <span><img src="modules/Admin/images/icons/erreur.png" alt="icon" /><br /><?php if($language=='english'){echo '<br/>';} echo _SQL; ?></span>
-                </a>
-            </li>
-
-            <li>
                 <a class="shortcut-button" href="#notification" rel="modal">
                     <span><img src="modules/Admin/images/icons/clock_48.png" alt="icon" /><br /><?php echo _NOTIFICATION; ?></span>
                 </a>

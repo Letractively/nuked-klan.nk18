@@ -1302,10 +1302,6 @@ function buildDateSitemapXML($lastDate) {
     return $lastDate;
 }
 
-/* -------------------------------------------------------------------------------------*/
-
-/* Agregation functions : In works... */
-
 /**
  * Get the OS used by visitor.
  * @return string : OS used
@@ -1370,11 +1366,14 @@ function getUserOperatingSystem() {
     return $os;
 }
 
+/**
+ * Get the browser used by user.
+ */
 function getUserBrowser(){
-    $user_agent = $_SERVER['HTTP_USER_AGENT'];
+    $userAgent = $_SERVER['HTTP_USER_AGENT'];
     $browser = 'Autre';
 
-    $list_browser = array(
+    $listBrowser = array(
         'Firefox'   => 'Firefox',
         'Lynx'      => 'Lynx',
         'Konqueror' => 'Konqueror',
@@ -1391,56 +1390,30 @@ function getUserBrowser(){
         'yahoo'     => 'Yahoo Bot'
     );
 
-    foreach( $list_browser as $k => $v ){
-        if (preg_match("#".$k."#i", $user_agent)){
-            $browser = $v;
+    foreach ($listBrowser as $key => $value) {
+        if (stripos(strtolower($key), strtolower($userAgent) !== FALSE)) {
+            $browser = $value;
             break;
         }
     }
     return $browser;
 
 }
-function erreursql($errno, $errstr, $errfile, $errline, $errcontext){
-    global $user, $nuked, $language;
 
-    switch ($errno){
-        case E_WARNING:
-            break;
-        case 8192:
-            break;
-        case 8:
-            break;
-        default:
-            $content = ob_get_clean();
-            // CONNECT TO DB AND OPEN SESSION PHP
-            if(file_exists('conf.inc.php')) include ('conf.inc.php');
-            nkTryConnect();
-            session_name('nuked');
-            session_start();
-            if (session_id() == '') exit(ERROR_SESSION);
-            $date = time();
-            echo ERROR_SQL;
-            $texte = _TYPE . ': ' . $errno . _SQLFILE . $errfile . _SQLLINE . $errline;
-            $upd = mysql_query("INSERT INTO " . $nuked['prefix'] . "_erreursql  (`date` , `lien` , `texte`)  VALUES ('" . $date . "', '" . mysql_escape_string($_SERVER["REQUEST_URI"]) . "', '" . $texte . "')");
-            $upd2 = mysql_query("INSERT INTO " . $nuked['prefix'] . "_notification  (`date` , `type` , `texte`)  VALUES ('".$date."', '4', '" . _ERRORSQLDEDECTED . " : [<a href=\"index.php?file=Admin&page=erreursql\">" . _TLINK . "</a>].')");
-            exit();
-            break;
-    }
-    /* Ne pas exécuter le gestionnaire interne de PHP */
-    return true;
-}
-
-function send_stats_nk() {
+/**
+ * Send stats to www.nuked-klan.org if user activate it.
+ * @global array $nuked
+ */
+function sendStatsNk() {
     global $nuked;
 
-    if($nuked['stats_share'] == "1")
-    {
+    if ($nuked['stats_share'] == "1") {
         $timediff = (time() - $nuked['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
-        if($timediff >= 60) 
-        {
+        if ($timediff >= 60) {
 			
             ?>
-            <script type="text/javascript" src="modules/Admin/scripts/jquery-1.6.1.min.js"></script>
+            <!-- To include in head to avoid conflicts librairies -->
+            <!--script type="text/javascript" src="modules/Admin/scripts/jquery-1.6.1.min.js"></script-->
             <script type="text/javascript">
                 //<![CDATA[
                 $(document).ready(function() {
@@ -1454,11 +1427,9 @@ function send_stats_nk() {
     }
 }
 
-/* ---------------------------------- */
-/* End version fusion 1.8 */
-/* ---------------------------------- */
+/* -------------------------------------------------------------------------------------*/
 
-/* ************************************************************************************************************************* */
+/* Reorganisation of functions and clean code below : In works... */
 
 
 /**
@@ -1516,6 +1487,12 @@ date_default_timezone_set($dateZone);
 
 // Include configuration sessions
 include ROOT_PATH . 'Includes/nkSessions.php';
+
+/* ---------------------------------- */
+/* End version fusion 1.8 */
+/* ---------------------------------- */
+
+/* ************************************************************************************************************************* */
 
 /* *************************
  * Functions and variables to review...
@@ -1607,6 +1584,38 @@ function number($total, $limit, $url){
         
         echo $output;
     }
+}
+/**
+ * @todo delete this function and file "modules/Admin/erreursql.php"
+ * 
+function erreursql($errno, $errstr, $errfile, $errline, $errcontext){
+    global $user, $nuked, $language;
+
+    switch ($errno){
+        case E_WARNING:
+            break;
+        case 8192:
+            break;
+        case 8:
+            break;
+        default:
+            $content = ob_get_clean();
+            // CONNECT TO DB AND OPEN SESSION PHP
+            if(file_exists('conf.inc.php')) include ('conf.inc.php');
+            nkTryConnect();
+            session_name('nuked');
+            session_start();
+            if (session_id() == '') exit(ERROR_SESSION);
+            $date = time();
+            echo ERROR_SQL;
+            $texte = _TYPE . ': ' . $errno . _SQLFILE . $errfile . _SQLLINE . $errline;
+            $upd = mysql_query("INSERT INTO " . $nuked['prefix'] . "_erreursql  (`date` , `lien` , `texte`)  VALUES ('" . $date . "', '" . mysql_escape_string($_SERVER["REQUEST_URI"]) . "', '" . $texte . "')");
+            $upd2 = mysql_query("INSERT INTO " . $nuked['prefix'] . "_notification  (`date` , `type` , `texte`)  VALUES ('".$date."', '4', '" . _ERRORSQLDEDECTED . " : [<a href=\"index.php?file=Admin&page=erreursql\">" . _TLINK . "</a>].')");
+            exit();
+            break;
+    }
+    // Ne pas exécuter le gestionnaire interne de PHP
+    return true;
 }
  * */
 

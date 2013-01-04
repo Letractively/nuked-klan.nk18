@@ -12,11 +12,6 @@ header('Content-type: text/html; charset=iso-8859-1');
 					Statistiques
 				</span></a></li>
 				
-				<li><a class="shortcut-button" href="index.php?file=Admin&amp;page=erreursql"><span>
-					<img src="modules/Admin/images/icons/erreur.png" alt="icon" /><br />
-					Erreurs SQL détectées
-				</span></a></li>
-				
 				<li><a class="shortcut-button" href="#notification" rel="modal"><span>
 					<img src="modules/Admin/images/icons/clock_48.png" alt="icon" /><br />
 					Ajouter une notification

@@ -235,7 +235,8 @@ else if (($_REQUEST['file'] != 'Admin' AND $_REQUEST['page'] != 'admin') || ( ni
             echo '<p style="color:#555555;text-align:center;width:100%;">Generated in ',${mtime},'s</p>';
         }
 
-        send_stats_nk();
+        //@todo reactive and test it when head inclusion is done
+        //sendStatsNk();
 
         echo '</body></html>';
     }
