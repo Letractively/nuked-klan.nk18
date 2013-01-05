@@ -10,6 +10,7 @@
 
 /**
  * Functions NK use for connection to MySQL database.
+ * DB Library
  */
 
 /**

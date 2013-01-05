@@ -261,4 +261,114 @@ if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG && isset( $GLOBALS['nk_error'
 {
     include ROOT_PATH .'Includes/nkDebug.php';
 }
+
+/*********************
+ * TODO
+ *********************/
+/*
+ * Rename class case NK_ (see Architecture_1.8)
+ * 
+/*********************
+ * Informations
+ *********************
+ * 
+ * $GLOBALS['nuked'] : array contains globals informations (date, theme,...)
+      'prefix' => string : prefix of database
+      'time_generate' => string : 'on' or 'off' for time generation
+      'dateformat' => string : dateformat with PHP pattern (see PHP doc
+      'datezone' => string : time zone
+      'version' => string : version of NK.
+      'date_install' => string : timestamp of installation date
+      'langue' => string : used language (french, english)
+      'stats_share' => string : activation of statistics ('0' if off, else 1 if is 'on')
+      'stats_timestamp' => string '0' (length=1)
+      'name' => string : website name
+      'slogan' => string : slogan of website
+     * 
+      @todo : will be delete
+      'tag_pre' => string 
+      'tag_suf' => string 
+      @todo : will be delete
+     * 
+      'url' => string : url of website
+      'mail' => string administrator mail
+      'footmessage' => string : message on footer website
+      'nk_status' => string : 'open' if website is open, else 'closed'
+      'index_site' => string : name of main module on website
+      'theme' => string : name of default theme activated for all users
+      'keyword' => string : keywords used for SEO (tag HTML)
+      'description' => string : description used for SEO (tag HTML)
+      'inscription' => string : if 'on', inscription is activated, else 'off'
+      'inscription_mail' => string : mail send after inscription
+      'inscription_avert' => string : text display before inscription
+      'inscription_charte' => string : text (charte) display before inscription
+      'validation' => string : status of inscription validation : 'auto', of manual
+      'user_delete' => string : authorization for an user to delete or not his account ('on' or 'off')
+      'video_editeur' => string : activation or no to use video editor ('on' or 'off')
+      'scayt_editeur' => string 'on' (length=2)
+      'suggest_avert' => string '' (length=0)
+      'irc_chan' => string 'nuked-klan' (length=10)
+      'irc_serv' => string 'quakenet.org' (length=12)
+      'server_ip' => string '' (length=0)
+      'server_port' => string '' (length=0)
+      'server_pass' => string '' (length=0)
+      'server_game' => string '' (length=0)
+      'forum_title' => string '' (length=0)
+      'forum_desc' => string '' (length=0)
+      'forum_rank_team' => string 'off' (length=3)
+      'forum_field_max' => string '10' (length=2)
+      'forum_file' => string 'on' (length=2)
+      'forum_file_level' => string '1' (length=1)
+      'forum_file_maxsize' => string '1000' (length=4)
+      'thread_forum_page' => string '20' (length=2)
+      'mess_forum_page' => string '2' (length=1)
+      'hot_topic' => string '20' (length=2)
+      'post_flood' => string '10' (length=2)
+      'gallery_title' => string '' (length=0)
+      'max_img_line' => string '2' (length=1)
+      'max_img' => string '6' (length=1)
+      'max_news' => string '5' (length=1)
+      'max_download' => string '10' (length=2)
+      'hide_download' => string 'on' (length=2)
+      'max_liens' => string '10' (length=2)
+      'max_sections' => string '10' (length=2)
+      'max_wars' => string '30' (length=2)
+      'max_archives' => string '30' (length=2)
+      'max_members' => string '30' (length=2)
+      'max_shout' => string '20' (length=2)
+      'mess_guest_page' => string '10' (length=2)
+      'sond_delay' => string '24' (length=2)
+      'level_analys' => string '-1' (length=2)
+      'visit_delay' => string '10' (length=2)
+      'recrute' => string '1' (length=1)
+      'recrute_charte' => string '' (length=0)
+      'recrute_mail' => string '' (length=0)
+      'recrute_inbox' => string '' (length=0)
+      'defie_charte' => string '' (length=0)
+      'defie_mail' => string '' (length=0)
+      'defie_inbox' => string '' (length=0)
+      'birthday' => string 'all' (length=3)
+      'avatar_upload' => string 'on' (length=2)
+      'avatar_url' => string 'on' (length=2)
+      'cookiename' => string 'nuked' (length=5)
+      'sess_inactivemins' => string '5' (length=1)
+      'sess_days_limit' => string '365' (length=3)
+      'nbc_timeout' => string '300' (length=3)
+      'screen' => string 'on' (length=2)
+      'contact_mail' => string 'admin@admin.com' (length=15)
+      'contact_flood' => string '60' (length=2)
+ * 
+ * $GLOBALS['language'] : user language defined
+ * 
+ * $GLOBALS['user'] : user informations
+    [0] = ID visitor
+    [1] = user level
+    [2] = pseudo
+    [3] = IP address
+    [4] = number of new messages unread
+ 
+ * $GLOBALS['user_ip'] : IP address user
+ * $GLOBALS['nkTpl'] : light template library
+ * $GLOBALS['nuked']['stats_share']
+ */
 ?>

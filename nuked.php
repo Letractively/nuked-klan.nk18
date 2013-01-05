@@ -12,35 +12,46 @@ defined('INDEX_CHECK') or die ('You can\'t run this file alone.');
 
 /* ---------------------------------- */
 /* Start version fusion 1.8 */
-/* Test Environnement : Apache 2.0.63 and PHP 5.1.0 */
+/* Test Environnement : Apache 2.0.63 and PHP 5.3.5 */
 /* ---------------------------------- */
 
 // Include configuration constants
-if (file_exists('conf.inc.php')) {
-    include('conf.inc.php');
-}
+require ROOT_PATH . 'conf.inc.php';
 
 // Sets which PHP errors are reported, use error debug popup
-
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
     require ROOT_PATH . 'Includes/libs/NK_Exception.php';
 }
 
-//Include Light Tpl library
-require ROOT_PATH . 'Includes/libs/NK_Tpl.php';
-$nkTpl = NK_Tpl::getInstance();
-
-// Include DB library
+/**
+ * Include main librairies.
+ */
+require ROOT_PATH . 'Includes/libs/NK_tpl.php';
 require ROOT_PATH . 'Includes/libs/NK_' . $db_type .'.php';
+require ROOT_PATH . 'Includes/nkSessions.php';
 
+
+// Connection to DB.
+nkTryConnect();
+
+/**
+ * Build main variables.
+ */
+$GLOBALS['nuked'] = nkConstructNuked($db_prefix);
+$GLOBALS['nkTpl'] = NK_tpl::getInstance();
+
+// Include SQL constant tables
+include ROOT_PATH . 'Includes/constants.php';
+
+// Initialize session
+nkSessionInit();
 
 /**
  * Try to connect, if false, display a error message.
  */
 function nkTryConnect() {
-    global $nkTpl;
     if (!nkDB_connect()) {
-        echo $nkTpl->nkDisplayError(ERROR_QUERY);
+        echo $GLOBALS['nkTpl']->nkDisplayError(ERROR_QUERY);
         /**
          * @todo Add log
          */
@@ -51,63 +62,57 @@ function nkTryConnect() {
 /**
  * Construct nuked array and control database prefix before initialization connection.
  * @param string $prefixDB : prefix database
- * @return array $nuked : global array construct
  */
 function nkConstructNuked($prefixDB) {
-    global $nkTpl;
-    $nuked = array();
+    $GLOBALS['nuked'] = array();
     // Control database prefix before initialize connection.
     $result = nkDB_controlPrefix($prefixDB);
     if (!$result) {
-        echo $nkTpl->nkDisplayError(DBPREFIX_ERROR);
+        echo $GLOBALS['nkTpl']->nkDisplayError(DBPREFIX_ERROR);
         /**
          * @todo Add log
          */
         return;
     } else {
         // Construct nuked array
-        $nuked['prefix'] = $prefixDB;
+        $GLOBALS['nuked']['prefix'] = $prefixDB;
         foreach ($result as $key => $value) {
             // Old version printSecuTags
-            $nuked[$value['name']] = printSecuTags(htmlentities($value['value'], ENT_NOQUOTES));
+            $GLOBALS['nuked'][$value['name']] = printSecuTags(htmlentities($value['value'], ENT_NOQUOTES));
             /**
              * @todo for fix bad code
              * 1. remove line before
              * 2. uncomment line below
-             * 3. remove printSecuTags on all files which call $nuked variable
+             * 3. remove printSecuTags on all files which call $GLOBALS['nuked'] variable
              */
-            //$nuked[$value['name']] = $value['value'];
+            //$GLOBALS['nuked'][$value['name']] = $value['value'];
         }
     }
     
-    return $nuked;
+    return $GLOBALS['nuked'];
 }
 
 /**
- * Convert date format
- * @global array $nuked 
- * @global string $language language defined
+ * Convert date format.
  * @param string $timestamp timestamp
  * @param string $block : date format
  * @return string date converted 
  */
-function nkDate($timestamp, $block = false) {
-    global $nuked, $language;
-    
+function nkDate($timestamp, $block = false) {    
     if ($block === false) {
-        $format = $nuked['isBlock']; // à quoi correspond cette variable, voir function get_blok() ???
+        $format = $GLOBALS['nuked']['isBlock']; // à quoi correspond cette variable, voir function get_blok() ???
     } else {
         $format = $block;
     }
     
     if ($format === true) {
-        if ($language == 'french') {
+        if ($GLOBALS['language'] == 'french') {
             $format = '%d/%m/%Y';
         } else {
             $format = '%m/%d/%Y';
         }
     } else {
-        $format = $nuked['dateformat'];
+        $format = $GLOBALS['nuked']['dateformat'];
     }
     
     // Format date, and convert it to ISO format
@@ -169,26 +174,21 @@ function getTimeZoneDateTime($GMT) {
 
 /**
  * Query for user / vistor banishment.
- * @global string $user_ip : ip user
- * @global array $user : user infos
- * @global string $language : language for NK
  * @todo to review ?
  */
 function banip() {
-    global $user_ip, $user, $language;
-
     // Delete last number for dynamic IP's
-    $ipDyn = substr($user_ip, 0, -1);
+    $ipDyn = substr($GLOBALS['user_ip'], 0, -1);
 
     // SQL condition : dynamic IP or user account
-    $whereClause = ' WHERE (ip LIKE "%' . $ipDyn . '%") OR pseudo = "' . $user[2] . '"';
+    $whereClause = ' WHERE (ip LIKE "%' . $ipDyn . '%") OR pseudo = "' . $GLOBALS['user'][2] . '"';
 
     // Search banish
     $banQuery = nkDB_select('SELECT `id`, `pseudo`, `date`, `dure` FROM ' . BANNED_TABLE . $whereClause);
 
     // If positive result with banish search, assign new ip
     if (nkDB_numRows() > 0) {
-        $ipBanned = $user_ip;
+        $ipBanned = $GLOBALS['user_ip'];
     } else if (isset($_COOKIE['ip_ban']) && !empty($_COOKIE['ip_ban'])) { // Seach cookie banish
         // On supprime le dernier chiffre de l'adresse IP contenu dans le cookie
         $ipDynCookie = substr($_COOKIE['ip_ban'], 0, -1);
@@ -199,7 +199,7 @@ function banip() {
             $banCookieQuery  = nkDB_select('SELECT `id` FROM ' . BANNED_TABLE . ' WHERE (ip LIKE "%' . $ipDynCookie . '%")');
             // If positive result, do new ban and assign new IP
             if (nkDB_numRows() > 0) {
-                $ipBanned = $user_ip;
+                $ipBanned = $GLOBALS['user_ip'];
             }
         }
     } else{
@@ -214,23 +214,23 @@ function banip() {
             $delBan = nkDB_delete( BANNED_TABLE, $whereClause);
             // Administration notification           
             $fields = array( 'date', 'type', 'texte' );
-            $banQuery[0]['pseudo']  .= ' ' . _BANFINISHED . ' : [<a href=\"index.php?file=Admin&page=user&op=main_ip\">' . _LINK . '</a>]';
+            $banQuery[0]['pseudo']  .= ' ' . BANFINISHED . ' : [<a href=\"index.php?file=Admin&page=user&op=main_ip\">' . _LINK . '</a>]';
             $values = array( time(), '4', mysql_real_escape_string($banQuery[0]['pseudo']));
             $rs = nkDB_insert( BANNED_TABLE, $fields, $values );
         } else { // update IP address
-            if ($isset($user)) {
-                $whereUser = ', pseudo = "' . $user[2] . '"';
+            if ($isset($GLOBALS['user'])) {
+                $whereUser = ', pseudo = "' . $GLOBALS['user'][2] . '"';
             } else {
                 $whereUser = '';
             }
             $fields = array('ip', 'pseudo');
-            $values = array($user_ip, $whereUser);
-            $rs = nkDB_update( BANNED_TABLE, $fields, $values, 'ip = '. nkDB_escape($user_ip. $whereUser . $whereClause));
+            $values = array($GLOBALS['user_ip'], $whereUser);
+            $rs = nkDB_update( BANNED_TABLE, $fields, $values, 'ip = '. nkDB_escape($GLOBALS['user_ip']. $whereUser . $whereClause));
                 
             // Redirection to banish page
             $urlBan = 'ban.php?ip_ban=' . $ipBanned;
-            if (!empty($user)) {
-                $urlBan .= '&user=' . urlencode($user[2]);
+            if (!empty($GLOBALS['user'])) {
+                $urlBan .= '&user=' . urlencode($GLOBALS['user'][2]);
             }
             redirect($urlBan, 0);
         }
@@ -240,13 +240,11 @@ function banip() {
 
 /**
  * Display blocks.
- * @global array user : user informations
- * @global object $nkTpl : template NK
  * @param string $side : side block to display
  */
 function get_blok($side) {
-    global $user, $nkTpl;
-
+    
+    // Array orientation
     $activeTranslation = array(
         'gauche' => 1,
         'droite' => 2,
@@ -257,23 +255,23 @@ function get_blok($side) {
      * @todo to delete ?
      */
     if ($side == 'gauche' || $side == 'droite') {
-        $nuked['isBlock'] = TRUE;
+        $GLOBALS['nuked']['isBlock'] = TRUE;
     }
     
      // Level of user
-    if (!empty($user)) {
-        $visiteur = $user[1];
+    if (!empty($GLOBALS['user'])) {
+        $visiteur = $GLOBALS['user'][1];
     } else {
         $visiteur = 0;
     }
 
     if (!array_key_exists($side, $activeTranslation )) {
-        echo $nkTpl->nkDisplayError(UNKNOWN_BLOCK . ' : '. $side);
+        echo $GLOBALS['nkTpl']->nkDisplayError(UNKNOWN_BLOCK . ' : '. $side);
         return;
     }
 
     if (!function_exists( $themeBlockName = 'block_' . $side )) {
-        echo $nkTpl->nkDisplayError(UNKNOWN_FUNCTION_BLOCK . ' : '. $themeBlockName);
+        echo $GLOBALS['nkTpl']->nkDisplayError(UNKNOWN_FUNCTION_BLOCK . ' : '. $themeBlockName);
         return;
     }
 
@@ -295,7 +293,7 @@ function get_blok($side) {
             if (function_exists($blockFunction = 'affich_block_'. $block['type'])) {
                 $block = $blockFunction( $block );
             } else {
-                echo $nkTpl->nkDisplayError(UNKNOWN_FUNCTION_DISPLAY_BLOCK . ' : '. $blockFunction);
+                echo $GLOBALS['nkTpl']->nkDisplayError(UNKNOWN_FUNCTION_DISPLAY_BLOCK . ' : '. $blockFunction);
                 return;
             }
 
@@ -307,7 +305,7 @@ function get_blok($side) {
     /**
      * @todo to delete ?
      */
-    $nuked['isBlock'] = FALSE;
+    $GLOBALS['nuked']['isBlock'] = FALSE;
 }
 
 /**
@@ -362,20 +360,17 @@ function checkimg($url){
  * @param array $matches : text to parse
  * @return string : parsing text
  */
-function replaceSmilies($matches)
-{
+function replaceSmilies($matches) {
     $matches[0] = preg_replace('#<img src=\"(.*)\" alt=\"(.*)\" title=\"(.*)\" />#Usi', '$2', $matches[0]);
     return $matches[0];
 }
 
 /**
  * Display smilies.
- * @global array $nuked
  * @param string $texte : text to display with smilies
  * @return string : formatted text
  */
 function icon($texte){
-    global $nuked;
     
     $texte = str_replace('mailto:', 'mailto!', $texte);
     $texte = str_replace('http://', '_http_', $texte);
@@ -467,7 +462,7 @@ function configSmiliesCKEditor(){
  * @param string $url : url to check
  * @return boolean : true if url is secure, else false 
  */
-function secureUrl($url){
+function secureUrl($url) {
     $urlInfos = parse_url(strtolower($url));
     $secureUrl = false;
     // If is not malformed URL and URL does not contain php extension and query
@@ -532,13 +527,10 @@ function secureCSS($styles){
 
 /**
  * HTML Filter.
- * @global array $nuked
  * @param array $matches : list of HTML tags
  * @return string : HTML filtered
  */
-function secureArgs($matches){
-    global $nuked;
-
+function secureArgs($matches) {
     // List of allowed tags
     $allowedTags = array(
         'p' => array(
@@ -692,7 +684,7 @@ function secureArgs($matches){
     );
     
     // If video editor is activated
-    if ($nuked['video_editeur'] == 'on') {
+    if ($GLOBALS['nuked']['video_editeur'] == 'on') {
         $allowedTags = array_merge($allowedTags, $videoTags);
     }
 
@@ -751,16 +743,11 @@ function secureArgs($matches){
 }
 
 /**
- * Display content with security CSS and HTML
- * @global string $bgcolor3 : color code defined by theme
- * @global array $nuked
- * @global string $language : language of website
+ * Display content with security CSS and HTML.
  * @param string $texte : text to secure
  * @return string : secure text to display
  */
-function secu_html($texte){
-    global $bgcolor3, $nuked, $language;
-    
+function secu_html($texte) {    
     // HTML tag forbidden
     $texte = str_replace(array('&lt;', '&gt;', '&quot;'), array('<', '>', '"'), $texte);
     $texte = stripslashes($texte);
@@ -803,7 +790,7 @@ function secu_html($texte){
  * @param string $url : url to redirect
  * @param int $tps : time in seconds before redirection
  */
-function redirect($url, $tps){
+function redirect($url, $tps) {
     $temps = $tps * 1000;
 
     echo '<script type="text/javascript">',"\n"
@@ -824,7 +811,7 @@ function redirect($url, $tps){
  * @param int $limit : The number of subjects per page
  * @param string $url : The basic url to redirect at page
  */
-function number($total, $limit, $url){
+function number($total, $limit, $url) {
     
     $currentPage = $_REQUEST['p'];
     
@@ -876,9 +863,6 @@ function number($total, $limit, $url){
 
 /**
  * Count the number of current visitors.
- * @global array $user : user informations
- * @global array $nuked
- * @global string $user_ip : user IP address
  * @return int : number of visitors
  *  [0] = visitors
  *  [1] = members
@@ -886,19 +870,18 @@ function number($total, $limit, $url){
  *  [3] = members + admin;
  *  [4] = visitors + members + admin
  */
-function nbvisiteur(){
-    global $user, $nuked, $user_ip;
+function nbvisiteur() {
 
     static $count = array();
 
     if (empty($count)) {
         $time = time();
-        $limite = $time + (int) $nuked['nbc_timeout'];
+        $limite = $time + (int) $GLOBALS['nuked']['nbc_timeout'];
 
         $rsDel = nkDB_delete(NBCONNECTE_TABLE, 'date < ' . nkDB_escape($time));
 
-        if (isset($user_ip)) {
-            updateUserConnectData($user, $user_ip, $limite);
+        if (isset($GLOBALS['user_ip'])) {
+            updateUserConnectData($GLOBALS['user'], $GLOBALS['user_ip'], $limite);
         }
 
         $req = nkDB_select('SELECT COUNT(*) AS recordcount FROM '. NBCONNECTE_TABLE .' WHERE type = 0' );
@@ -923,39 +906,39 @@ function nbvisiteur(){
 /**
  * Update data user connections (used like cache).
  * @param array $user : user informations
- *  [0] = id visitor
+ *  [0] = ID visitor
  *  [1] = user level
  *  [2] = pseudo
  *  [3] = IP address
  *  [4] = number of new messages unread
- * @param type $user_ip : user IP address
+ * @param type $ipUser : user IP address
  * @param int $limite : date limit
  */
-function updateUserConnectData($user, $user_ip, $limite) {
+function updateUserConnectData($user, $ipUser, $limite) {
     
     // Get IP address of visitor
     if (isset($user[0])) {
         $req = nkDB_select('SELECT IP FROM '. NBCONNECTE_TABLE .' WHERE user_id = '. nkDB_escape($user[0]));
     } else {
-        $req = nkDB_select('SELECT IP FROM '. NBCONNECTE_TABLE .' WHERE IP = '. nkDB_escape($user_ip));
+        $req = nkDB_select('SELECT IP FROM '. NBCONNECTE_TABLE .' WHERE IP = '. nkDB_escape($ipUser));
     }
 
     // If IP address exists, update user informations
     if (nkDB_numRows() > 0) {
         if (isset($user[0])) {
             $fieldsUserSet = array('date', 'type', 'IP', 'username');
-            $valuesUserSet = array($limite, (int) $user[1], $user_ip, $user[2]);
+            $valuesUserSet = array($limite, (int) $user[1], $ipUser, $user[2]);
             $rs = nkDB_update(NBCONNECTE_TABLE, $fieldsUserSet, $valuesUserSet, 'user_id = '. nkDB_escape($user[0]));
         } else {
             $fields = array('date', 'type', 'user_id', 'username');
             $values = array($limite, (int) $user[1], $user[0], $user[2]);
-            $rs = nkDB_update(NBCONNECTE_TABLE, $fieldsUserSet, $valuesUserSet, 'IP = '. nkDB_escape($user_ip));
+            $rs = nkDB_update(NBCONNECTE_TABLE, $fieldsUserSet, $valuesUserSet, 'IP = '. nkDB_escape($ipUser));
         }
     } else {  // If not, add IP address of user (delete this if it exists before)
-        $rsDel = nkDB_delete(NBCONNECTE_TABLE, 'IP = ' . nkDB_escape($user_ip));
+        $rsDel = nkDB_delete(NBCONNECTE_TABLE, 'IP = ' . nkDB_escape($ipUser));
         
         $fields = array('`IP`', '`type`', '`date`', '`user_id`', '`username`');
-        $values = array($user_ip, (int) $user[1], $limite, $user[0], $user[2]);
+        $values = array($ipUser, (int) $user[1], $limite, $user[0], $user[2]);
         $rsIns = nkDB_insert(NBCONNECTE_TABLE, $fields, $values);
         
     }
@@ -1106,27 +1089,22 @@ function nk_CSS($str){
 }
 
 /**
- * Registration info of the user for stats
- * @global array $user : user informations
- * @global array $nuked
- * @global string $user_ip : user IP address
+ * Registration info of the user for stats.
  */
-function visits(){
-    global $nuked, $user_ip, $user;
-
+function visits() {
     // Visit date
     $time = time();
     // Time visit (in seconds)
-    $timevisit = $nuked['visit_delay'] * 60;
+    $timevisit = $GLOBALS['nuked']['visit_delay'] * 60;
     // Time limit (in seconds)
     $limite = $time + $timevisit;
     
-    if ($user) {
-        $strReq = 'SELECT id, date FROM ' . STATS_VISITOR_TABLE . ' WHERE user_id = ' . nkDB_escape($user[0]);
-        $userID = $user[0];
+    if ($GLOBALS['user']) {
+        $strReq = 'SELECT id, date FROM ' . STATS_VISITOR_TABLE . ' WHERE user_id = ' . nkDB_escape($GLOBALS['user'][0]);
+        $userID = $GLOBALS['user'][0];
     } else {
-        $strReq = 'SELECT id, date FROM ' . STATS_VISITOR_TABLE . ' WHERE ip = ' . nkDB_escape($user_ip);
-        $userID = $user_ip;
+        $strReq = 'SELECT id, date FROM ' . STATS_VISITOR_TABLE . ' WHERE ip = ' . nkDB_escape($GLOBALS['user_ip']);
+        $userID = $GLOBALS['user_ip'];
     }
     
     $statsData = nkDB_select($strQuery, array( 'date' ), 'DESC', 1);
@@ -1135,7 +1113,6 @@ function visits(){
     if ($statsData[0]['id'] != '' && $statsData[0]['date'] > $time) {
         nkDB_update(STATS_VISITOR_TABLE, array( 'date' ), array( $limite ), 'id = '. nkDB_escape($stats_data[0]['id']));
     } else {
-        
         // Get month, year, day and hour actual
         $month = strftime( '%m', $time );
         $year = strftime( '%Y', $time );
@@ -1149,10 +1126,10 @@ function visits(){
             $userReferer = '';
         }
         
-        $userHost = strtolower(@gethostbyaddr($user_ip));
+        $userHost = strtolower(@gethostbyaddr($GLOBALS['user_ip']));
         
         // Get hostname of user
-        if ($userHost == $user_ip) {
+        if ($userHost == $GLOBALS['user_ip']) {
             $host = '';
         } else if (preg_match(
                 '#([^.]{1,})((\.(co|com|net|org|edu|gov|mil))|())((\.(ac|ad|ae|af|ag|ai|al|am|an|ao|aq|ar|as|at|au|aw|az|ba|bb|
@@ -1176,13 +1153,13 @@ function visits(){
         nkDB_insert(
                 STATS_VISITOR_TABLE,
                 array('`user_id`', '`ip`', '`host`', '`browser`', '`os`', '`referer`', '`day`', '`month`', '`year`', '`hour`', '`date`'),
-                array($userID, $user_ip, $host, $browser, $os, $user_referer, $day, $month, $year, $hour, $limite)
+                array($userID, $GLOBALS['user_ip'], $host, $browser, $os, $user_referer, $day, $month, $year, $hour, $limite)
         );
     }
 }
 
 /**
- * Check if pseudo is conform ( no empty & no special characters ), not used and not banned
+ * Check if pseudo is conform ( no empty & no special characters ), not used and not banned.
  * @param string $pseudo : pseudo to check
  * @param boolean $checkNickUse : true for checking if pseudo is used, else false
  * @param int $maxlength : the max length of pseudo (30)
@@ -1222,11 +1199,8 @@ function verif_pseudo($pseudo = '', $checkNickUse = TRUE, $maxlength = 30)
 
 /**
  * Update the sitemap.xml file (SEO)
- * @global array $nuked 
  */
-function updateSitemapXML(){
-    global $nuked;
-    
+function updateSitemapXML() {   
     // Modules which are not included in sitemap.xml
     $excludedModules = array('Suggest', 'Comment', 'Vote', 'Textbox', 'Members', 'Contact');
 
@@ -1245,7 +1219,7 @@ function updateSitemapXML(){
         foreach ($modules as $module) {
             if (!in_array($module['nom'], $excludedModules)){
                 $sitemap .= "\t<url>\r\n";
-                $sitemap .= '\t\t<loc>' . $nuked['url'] . '/index.php?file='. $module['nom'] . '</loc>\r\n';
+                $sitemap .= '\t\t<loc>' . $GLOBALS['nuked']['url'] . '/index.php?file='. $module['nom'] . '</loc>\r\n';
                 
                 switch ($module['nom']) {  
                     case 'News' :
@@ -1402,13 +1376,10 @@ function getUserBrowser(){
 
 /**
  * Send stats to www.nuked-klan.org if user activate it.
- * @global array $nuked
  */
 function sendStatsNk() {
-    global $nuked;
-
-    if ($nuked['stats_share'] == "1") {
-        $timediff = (time() - $nuked['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
+    if ($GLOBALS['nuked']['stats_share'] == "1") {
+        $timediff = (time() - $GLOBALS['nuked']['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
         if ($timediff >= 60) {
 			
             ?>
@@ -1431,41 +1402,35 @@ function sendStatsNk() {
 
 /* Reorganisation of functions and clean code below : In works... */
 
-
 /**
- * Connection to DB.
+ * Set defaults actions
  */
-nkTryConnect();
-
-
+if (empty($_REQUEST['file'])) {
+    $_REQUEST['file'] = $GLOBALS['nuked']['index_site'];
+}
+if (empty($_REQUEST['op'])) {
+    $_REQUEST['op'] = 'index';
+}
 /**
- * Query nuked 'CONFIG_TABLE'.
+ * Set theme
  */
-$nuked = nkConstructNuked($db_prefix);
-
-// Include constant table
-include('Includes/constants.php');
-
-// $_REQUEST['file'] & $_REQUEST['op'] DEFAULT VALUE.
-if (empty($_REQUEST['file'])) $_REQUEST['file'] = $nuked['index_site'];
-if (empty($_REQUEST['op'])) $_REQUEST['op'] = 'index';
 
 // SELECT THEME, USER THEME OR NOT FOUND THEME : ERROR
-if (isset($_REQUEST[$nuked['cookiename'] . '_user_theme'])
-        && is_file(ROOT_PATH . 'themes/' . $nuked['user_theme'] . '/theme.php')) {
-    $theme = $_REQUEST[$nuked['cookiename'] . '_user_theme'];
-} elseif (is_file(ROOT_PATH . 'themes/' . $nuked['theme'] . '/theme.php')) {
-    $theme = $nuked['theme'];
+if (isset($_REQUEST[$GLOBALS['nuked']['cookiename'] . '_user_theme'])
+        && is_file(ROOT_PATH . 'themes/' . $GLOBALS['nuked']['user_theme'] . '/theme.php')) {
+    $theme = $_REQUEST[$GLOBALS['nuked']['cookiename'] . '_user_theme'];
+} elseif (is_file(ROOT_PATH . 'themes/' . $GLOBALS['nuked']['theme'] . '/theme.php')) {
+    $theme = $GLOBALS['nuked']['theme'];
 } else {
     exit(THEME_NOTFOUND);
 }
 
 // SELECT LANGUAGE AND USER LANGUAGE
-if (isset($_REQUEST[$nuked['cookiename'] . '_user_langue'])
-        && is_file(ROOT_PATH . 'lang/' . $nuked['user_lang'] . '.lang.php')) {
-    $language = $_REQUEST[$nuked['cookiename'] . '_user_langue'];    
+if (isset($_REQUEST[$GLOBALS['nuked']['cookiename'] . '_user_langue'])
+        && is_file(ROOT_PATH . 'lang/' . $GLOBALS['nuked']['user_lang'] . '.lang.php')) {
+    $language = $_REQUEST[$GLOBALS['nuked']['cookiename'] . '_user_langue'];    
 } else {
-    $language =  $nuked['langue'];    
+    $language =  $GLOBALS['nuked']['langue'];    
 }
 
 
@@ -1479,14 +1444,11 @@ if($language == 'french') {
 elseif($language == 'english') setlocale(LC_ALL, 'en_US');
 
 // DATE FUNCTION WITH FORMAT AND ZONE FOR DATE
-$dateZone = getTimeZoneDateTime($nuked['datezone']);
+$dateZone = getTimeZoneDateTime($GLOBALS['nuked']['datezone']);
 date_default_timezone_set($dateZone);
     
 
 
-
-// Include configuration sessions
-include ROOT_PATH . 'Includes/nkSessions.php';
 
 /* ---------------------------------- */
 /* End version fusion 1.8 */
@@ -1499,7 +1461,7 @@ include ROOT_PATH . 'Includes/nkSessions.php';
  ************************* */
 
 /**
- * $nuked['isBlock'] to delete
+ * $GLOBALS['nuked']['isBlock'] to delete
  */
 
 /**

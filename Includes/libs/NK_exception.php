@@ -10,6 +10,7 @@
 // -------------------------------------------------------------------------//
 
 /**
+ * Class for exceptions.
  * @name NK_Exception
  * @desc Custom class for errors and exceptions management.
  */

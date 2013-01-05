@@ -8,12 +8,12 @@
 // the Free Software Foundation; either version 2 of the License.           //
 // -------------------------------------------------------------------------//
 
-define("_LINK","Lien");
-define("_PAGE","Page");
-define("_LIST","Liste");
-define("_FIRSTPAGE","Première page");
-define("_LASTPAGE","Dernière page");
-define("_PREVIOUSPAGE","Page précédente");
-define("_NEXTPAGE","Page suivante");
-define("_BANFINISHED","n'est plus banni, sa période est arrivée à expiration");
+define("LINK","Lien");
+define("PAGE","Page");
+define("LIST","Liste");
+define("FIRSTPAGE","Première page");
+define("LASTPAGE","Dernière page");
+define("PREVIOUSPAGE","Page précédente");
+define("NEXTPAGE","Page suivante");
+define("BANFINISHED","n'est plus banni, sa période est arrivée à expiration");
 ?>

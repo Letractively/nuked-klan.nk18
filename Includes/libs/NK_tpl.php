@@ -10,10 +10,11 @@
 // -------------------------------------------------------------------------//
 
 /**
- * @name NK_Tpl
+ * Light template library.
+ * @name NK_tpl
  * @desc Custom class for include template
  */
-class NK_Tpl {
+class NK_tpl {
     
     
     /**
@@ -36,7 +37,7 @@ class NK_Tpl {
       */
     public static function getInstance() {
         if (is_null(self::$_instance)) {
-           self::$_instance = new NK_Tpl();
+           self::$_instance = new NK_tpl();
         }
         return self::$_instance;
     }
@@ -86,7 +87,7 @@ class NK_Tpl {
 
 // Test generator
 /*
-$nkTpl = NK_Tpl::getInstance();
+$nkTpl = NK_tpl::getInstance();
 echo $nkTpl->nkContentTag('div', 'my text', 'error-nk center-nk', 'idTest');
 echo $nkTpl->nkDisplayError('my text');
  */

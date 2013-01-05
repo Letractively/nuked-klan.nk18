@@ -9,6 +9,10 @@
 // -------------------------------------------------------------------------//
 defined('INDEX_CHECK') or die;
 
+/**
+ * Configuration for sessions.
+ */
+
 /*****************************
  * Begin sessions handler. *
  ****************************/
@@ -27,7 +31,7 @@ function session_open($savePath, $sessionName){
  * Close session.
  * @return boolean : true session closed
  */
-function session_close(){
+function session_close() {
     return true;
 }
 
@@ -36,7 +40,7 @@ function session_close(){
  * @param string $sessionId : session id
  * @return boolean : true if session read, else false 
  */
-function session_read($sessionId){
+function session_read($sessionId) {
     nkTryConnect();
     $result = '';
     $sessionVar = nkDB_select('SELECT session_vars FROM ' . TMPSES_TABLE . ' WHERE session_id = ' . nkDB_escape($sessionId));
@@ -52,10 +56,7 @@ function session_read($sessionId){
  * @param string $data
  * @return boolean : true if session wrote, else false 
  */
-function session_write($sessionId, $data){
-    $sessionId = mysql_escape_string($sessionId);
-    $data = mysql_escape_string($data);
-    
+function session_write($sessionId, $data) {
     nkTryConnect();
     
     $fields = array( 'session_id', 'session_start', 'session_vars' );
@@ -98,9 +99,33 @@ function session_gc($maxlife){
     return true;
 }
 
-
-if (ini_get('session.save_handler') == 'files') {
-    session_set_save_handler('session_open', 'session_close', 'session_read', 'session_write', 'session_delete', 'session_gc');
+/**
+ * Runtime configuration for PHP sessions.
+ */
+function nkConfigureSessions() {
+    
+    /**
+     * Sets user-level session storage functions.
+     */
+    if (ini_get('session.save_handler') == 'files') {
+        session_set_save_handler(
+                'session_open',
+                'session_close',
+                'session_read',
+                'session_write',
+                'session_delete',
+                'session_gc');
+    }
+    
+    /**
+     * Control activation extension suhosin.
+     */
+    if(ini_get('suhosin.session.encrypt') == '1'){
+        @ini_set('session.gc_probability', 100);
+        @ini_set('session.gc_divisor', 100);
+        @ini_set('session.gc_maxlifetime', (1440));
+    }
+    
 }
 
 /**************************
@@ -108,55 +133,126 @@ if (ini_get('session.save_handler') == 'files') {
  **************************/
 
 /**
- * Control activation extension suhosin.
+ * Start a nk session.
  */
-if(ini_get('suhosin.session.encrypt') == '1'){
-    @ini_set('session.gc_probability', 100);
-    @ini_set('session.gc_divisor', 100);
-    @ini_set('session.gc_maxlifetime', (1440));
+function nkSessionInit() {
+    
+    nkConfigureSessions();
+    
+    //session_name('nuked');
+    
+    // Starting the native PHP session
+    session_start();
+    
+    /*
+    if (session_id() == '') {
+        exit(ERROR_SESSION);
+    }
+    */
+    
+    // Prepare sessions vars
+    $lifetime = $GLOBALS['nuked']['sess_days_limit'] * 86400;
+    $timesession = $GLOBALS['nuked']['sess_inactivemins'] * 60;
+    $time = time();
+    $timelimit = $time + $lifetime;
+    $sessionlimit = $time + $timesession;
+    $user_theme = '';
+    $user_langue = '';
+    
+    // Prepare session cookie name
+    $cookie_session = $GLOBALS['nuked']['cookiename'] . '_sess_id';
+    $cookie_theme = $GLOBALS['nuked']['cookiename'] . '_user_theme';
+    $cookie_langue = $GLOBALS['nuked']['cookiename'] . '_user_langue';
+    $cookie_visit = $GLOBALS['nuked']['cookiename'] . '_last_visit';
+    $cookie_admin = $GLOBALS['nuked']['cookiename'] . '_admin_session';
+    $cookie_forum = $GLOBALS['nuked']['cookiename'] . '_forum_read';
+    $cookie_userid = $GLOBALS['nuked']['cookiename'] . '_userid';
+    $cookie_captcha = $GLOBALS['nuked']['cookiename'] . '_captcha';
+    
+    // Get theme cookie of user if exists
+    if  (isset($_COOKIE[$cookie_theme]) && $_COOKIE[$cookie_theme] != '') {
+        $user_theme = $_COOKIE[$cookie_theme];
+    }
+
+    // Get language cookie of user if exists
+    if (isset( $_COOKIE[$cookie_langue] ) && $_COOKIE[$cookie_langue] != '') {
+        $user_langue = $_COOKIE[$cookie_langue];
+    }
+    
+    // Check IP address user validity and get user IP
+    if (isset($uip) && filter_var($uip, FILTER_VALIDATE_IP) !== FALSE) {
+        $user_ip = $uip;
+    } else {
+        $user_ip = '';
+    }
+    
+    // Prepares global vars of session
+    $GLOBALS['lifetime']= $lifetime;
+    $GLOBALS['timesession'] = $timesession;
+    $GLOBALS['timelimit'] = $timelimit;
+    $GLOBALS['sessionlimit'] = $sessionlimit ;
+    $GLOBALS['cookie_session']	= $cookie_session;
+    $GLOBALS['cookie_theme'] = $cookie_theme;
+    $GLOBALS['cookie_langue'] = $cookie_langue;
+    $GLOBALS['cookie_visit'] = $cookie_visit ;
+    $GLOBALS['cookie_admin'] = $cookie_admin;
+    $GLOBALS['cookie_forum'] = $cookie_forum ;
+    $GLOBALS['cookie_userid'] = $cookie_userid;
+    $GLOBALS['cookie_captcha'] = $cookie_captcha;
+    $GLOBALS['time'] = $time;
+    $GLOBALS['user_ip'] = $user_ip;
+    $GLOBALS['user_theme'] = $user_theme;
+    $GLOBALS['user_langue'] = $user_langue;
 }
+
+
+//var_dump($GLOBALS);exit;
+
+
+
+//    session_name('nuked');
+//    
+//    // Starting the native PHP session
+//    session_start();
+//    
+//    if (session_id() == '') {
+//        exit(ERROR_SESSION);
+//    }
+//    $lifetime = $nuked['sess_days_limit'] * 86400;
+//    $timesession = $nuked['sess_inactivemins'] * 60;
+//    $time = time();
+//    $timelimit = $time + $lifetime;
+//    $sessionlimit = $time + $timesession;
+//    
+//    $cookie_session = $nuked['cookiename'] . '_sess_id';
+//    $cookie_theme = $nuked['cookiename'] . '_user_theme';
+//    $cookie_langue = $nuked['cookiename'] . '_user_langue';
+//    $cookie_visit = $nuked['cookiename'] . '_last_visit';
+//    $cookie_admin = $nuked['cookiename'] . '_admin_session';
+//    $cookie_forum = $nuked['cookiename'] . '_forum_read';
+//    $cookie_userid = $nuked['cookiename'] . '_userid';
+//
+//    // Création d'un cookie captcha
+//    $cookie_captcha = $nuked['cookiename'] . '_captcha';
+//    setcookie($cookie_captcha, 1);
+//
+//    // Recherche de l'adresse IP
+//    $uip = (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR'];
+//    
+//    // Validité adresse IP v4 / v6
+//    //if(isset($uip) && !empty($uip)) {
+//    //    if(preg_match('/^(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]).){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/', $uip)) $user_ip = $uip;
+//    //    elseif(preg_match('/^(([A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4})$|^([A-Fa-f0-9]{1,4}::([A-Fa-f0-9]{1,4}:){0,5}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){2}:([A-Fa-f0-9]{1,4}:){0,4}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){3}:([A-Fa-f0-9]{1,4}:){0,3}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){4}:([A-Fa-f0-9]{1,4}:){0,2}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){5}:([A-Fa-f0-9]{1,4}:){0,1}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){6}:[A-Fa-f0-9]{1,4})$/', $uip)) $user_ip = $uip;
+//    //    else $user_ip = '';
+//    //}
+
+
+
 
 /**
- * Session start.
+ * Secure user data
+ * @return array : Numeric indexed array of user data
  */
-session_name('nuked');
-session_start();
-if (session_id() == '') {
-    exit(ERROR_SESSION);
-}
-
-/**
- * Declaration variables.
- */
-
-$lifetime = $nuked['sess_days_limit'] * 86400;
-$timesession = $nuked['sess_inactivemins'] * 60;
-$time = time();
-$timelimit = $time + $lifetime;
-$sessionlimit = $time + $timesession;
-
-$cookie_session = $nuked['cookiename'] . '_sess_id';
-$cookie_theme = $nuked['cookiename'] . '_user_theme';
-$cookie_langue = $nuked['cookiename'] . '_user_langue';
-$cookie_visit = $nuked['cookiename'] . '_last_visit';
-$cookie_admin = $nuked['cookiename'] . '_admin_session';
-$cookie_forum = $nuked['cookiename'] . '_forum_read';
-$cookie_userid = $nuked['cookiename'] . '_userid';
-
-// Création d'un cookie captcha
-$cookie_captcha = $nuked['cookiename'] . '_captcha';
-setcookie($cookie_captcha, 1);
-
-// Recherche de l'adresse IP
-$uip = (isset($_SERVER['HTTP_X_FORWARDED_FOR'])) ? $_SERVER['HTTP_X_FORWARDED_FOR'] : $_SERVER['REMOTE_ADDR'];
-
-// Validité adresse IP v4 / v6
-if(isset($uip) && !empty($uip)) {
-    if(preg_match('/^(([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]).){3}([1-9]?[0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$/', $uip)) $user_ip = $uip;
-    elseif(preg_match('/^(([A-Fa-f0-9]{1,4}:){7}[A-Fa-f0-9]{1,4})$|^([A-Fa-f0-9]{1,4}::([A-Fa-f0-9]{1,4}:){0,5}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){2}:([A-Fa-f0-9]{1,4}:){0,4}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){3}:([A-Fa-f0-9]{1,4}:){0,3}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){4}:([A-Fa-f0-9]{1,4}:){0,2}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){5}:([A-Fa-f0-9]{1,4}:){0,1}[A-Fa-f0-9]{1,4})$|^(([A-Fa-f0-9]{1,4}:){6}:[A-Fa-f0-9]{1,4})$/', $uip)) $user_ip = $uip;
-    else $user_ip = '';
-}
-
 function secure(){
     global $nuked, $user_ip, $time, $cookie_visit, $cookie_session, $cookie_userid, $cookie_forum, $sessionlimit, $timesession, $timelimit;
 
@@ -252,12 +348,13 @@ function make_seed() {
 }
 
 function init_cookie() {
-    global $cookie_session, $cookie_userid, $cookie_theme, $cookie_langue, $cookie_forum;
+    global $cookie_session, $cookie_userid, $cookie_theme, $cookie_langue, $cookie_forum, $cookie_captcha;
     $test = setcookie($cookie_session, '');
     setcookie($cookie_userid, '');
     setcookie($cookie_theme, '');
     setcookie($cookie_langue, '');
     setcookie($cookie_forum, '');
+    setcookie($cookie_captcha, 1);
     return($test);
 }
 
