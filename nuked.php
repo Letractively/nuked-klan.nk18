@@ -1377,26 +1377,33 @@ function getUserBrowser(){
 /**
  * Send stats to www.nuked-klan.org if user activate it.
  */
-function sendStatsNk() {
-    if ($GLOBALS['nuked']['stats_share'] == "1") {
-        $timediff = (time() - $GLOBALS['nuked']['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
-        if ($timediff >= 60) {
-			
-            ?>
-            <!-- To include in head to avoid conflicts librairies -->
-            <!--script type="text/javascript" src="modules/Admin/scripts/jquery-1.6.1.min.js"></script-->
+function send_stats_nk() {
+    global $nuked;
+   
+    if($nuked['stats_share'] == "1") {
+        $timediff = (time() - $nuked['stats_timestamp'])/60/60/24/60; // Tous les 60 jours
+        if($timediff >= 60)
+        {
+                   
+        ?>
             <script type="text/javascript">
-                //<![CDATA[
-                $(document).ready(function() {
-                                                data="nuked_nude=ajax";
-                                                $.ajax({ url:'index.php', data:data, type: "GET", success: function(html){} });
-                                                });
-                //]]>
+                if ( typeof jQuery == 'undefined' )
+                {
+                    document.write('<script type="text/javascript" src="http://code.jquery.com/jquery-latest.min.js"></script>');
+                }
             </script>
+            <script type="text/javascript">
+                $(document).ready(function() {
+                    data="nuked_nude=ajax";
+                    $.ajax({url:'index.php', data:data, type: "GET", success: function(html) {
+                     }});
+                });
+                </script>
             <?php
         }
     }
 }
+
 
 /* -------------------------------------------------------------------------------------*/
 
