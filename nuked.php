@@ -20,7 +20,7 @@ require ROOT_PATH . 'conf.inc.php';
 
 // Sets which PHP errors are reported, use error debug popup
 if ( defined( 'NK_ERROR_DEBUG' ) && NK_ERROR_DEBUG ) {
-    require ROOT_PATH . 'Includes/libs/NK_Exception.php';
+    require ROOT_PATH . 'Includes/libs/NK_exception.php';
 }
 
 /**
@@ -45,6 +45,14 @@ include ROOT_PATH . 'Includes/constants.php';
 
 // Initialize session
 nkSessionInit();
+
+
+
+/******** REQUIRE AJOUT PAR MAXXI *******/
+$nkTpl = NK_Tpl::getInstance();
+require 'Includes/libs/function.php';
+require 'Includes/libs/comment.php';
+require 'Includes/libs/rating.php';
 
 /**
  * Try to connect, if false, display a error message.

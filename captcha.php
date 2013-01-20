@@ -1,13 +1,9 @@
 <?php
 define('INDEX_CHECK', 1);
-include('globals.php');
-include('conf.inc.php');
-include('nuked.php');
-include_once('Includes/hash.php');
-include_once('Includes/nkCaptcha.php');
+define('ROOT_PATH', dirname( __FILE__ ) .'/');
 
-session_name('nuked');
-session_start();
+include('nuked.php');
+include_once('Includes/nkCaptcha.php');
 
 $text = $_SESSION['captcha'];
 

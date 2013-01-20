@@ -481,6 +481,26 @@
           }
           echo "OK";
           break;
+            case'table_vote_mod':
+                if(!tableExist('vote_mod', $db_prefix)){
+                    mysql_query("CREATE TABLE `" . $db_prefix . "_vote_mod` (
+                        `id` int(11) NOT NULL auto_increment,
+                        `module` text NOT NULL,
+                        `active` int(1) NOT NULL,
+                        PRIMARY KEY  (`id`)
+                      ) ENGINE=MyISAM DEFAULT CHARSET=latin1 COLLATE=latin1_general_ci;")or die(mysql_error());
+                    
+                    mysql_query("INSERT INTO `" . $db_prefix . "_vote_mod` (`id`, `module`, `active`) VALUES
+                        (1, 'news', 1),
+                        (2, 'download', 1),
+                        (3, 'links', 1),
+                        (4, 'survey', 1),
+                        (5, 'wars', 1),
+                        (6, 'gallery', 1),
+                        (7, 'sections', 1);")or die(mysql_error());
+                }
+                echo 'OK';
+        break;  
         default:
             echo _WRONGTABLENAME;
         break;

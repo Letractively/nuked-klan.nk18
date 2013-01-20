@@ -70,4 +70,13 @@ define('WARS_TABLE', $nuked['prefix'] . '_match');
 define('WARS_FILES_TABLE', $nuked['prefix'] . '_match_files');
 define('CONTACT_TABLE', $nuked['prefix'] . '_contact');
 define('PAGE_TABLE', $nuked['prefix'] . '_page');
+
+
+
+
+/********* MODIF PAR MAXXI **********/
+define('COMMENT_MOD_TABLE', $nuked['prefix'] . '_comment_mod');
+define('VOTE_MOD_TABLE', $nuked['prefix'] . '_vote_mod');
+
+
 ?>

@@ -1,19 +1,335 @@
-/*
-// -------------------------------------------------------------------------//
-// Nuked-KlaN - PHP Portal                                                  //
-// http://www.nuked-klan.org                                                //
-// -------------------------------------------------------------------------//
-// This program is free software. you can redistribute it and/or modify     //
-// it under the terms of the GNU General Public License as published by     //
-// the Free Software Foundation; either version 2 of the License.           //
-// -------------------------------------------------------------------------//
-*/
-
-error-nk { 
-    
+.nkError {
 }
-
-center-nk {
+.nkSuccess {
+}
+.nkCenter {
     text-align: center;
 }
+body{
+    font-size: 12px;
+    font-family: sans-serif;
+}
+/******* AJOUT PAR MAXXI ********/
+#nkSiteClose {
+    background: none repeat scroll 0 0 #ECEADB;
+    color: white;
+    font-family: Arial,Helvetica,sans-serif;
+    font-size: 12px;
+    margin: 0;
+    min-width: 900px;
+    padding: 0;
+}
+#nkSiteClose a:link, #nkSiteClose a:visited, #nkSiteClose a:active, #nkSiteClose a:hover {
+    border: 0 none;
+    color: #78B404;
+    outline: 0 none;
+    text-decoration: none;
+}
+#nkSiteClose section {
+    background: url("../modules/Admin/images/bg-login.gif") repeat scroll 0 0 #222222;
+    border-radius: 10px;
+    display: block;
+    margin: 50px auto auto;
+    text-align: center;
+    vertical-align: middle;
+    width: 40%;
+}
+#nkSiteClose hgroup {
+    display: block;
+    padding-top: 15px;
+}
+#nkSiteClose img {
+    vertical-align: middle;
+}
+#nkSiteClose h1 {
+    color: white;
+    display: inline;
+    font-size: 24pt;
+    vertical-align: middle;
+}
+#nkSiteClose h2 {
+    color: #DBDBDB;
+    font-size: 18pt;
+    font-style: italic;
+    margin: 0;
+}
+#nkSiteClose p {
+    font-size: 12pt;
+    padding: 14px;
+}
+#nkSiteClose form {
+    background: none repeat scroll 0 0 #555555;
+    border: medium none;
+    border-radius: 4px 4px 4px 4px;
+    color: #FFFFFF;
+    display: block;
+    margin: auto;
+    padding: 20px;
+    text-align: center;
+    width: 50%;
+}
+#nkSiteClose div {
+    padding: 5px;
+}
+#nkSiteClose label {
+    display: inline-block;
+    text-align: left;
+    width: 90px;
+}
+#nkSiteClose input {
+    background: none repeat scroll 0 0 #828282;
+    border: medium none;
+    border-radius: 4px 4px 4px 4px;
+    color: #FFFFFF;
+    height: 20px;
+}
+#nkSiteClose input[type="submit"] {
+    background: url("../modules/Admin/images/bg-button-green.gif") repeat-x scroll 0 0 transparent !important;
+    border: 1px solid #459300;
+    border-radius: 4px 4px 4px 4px;
+    color: white !important;
+    cursor: pointer;
+    margin-top: 20px;
+    min-height: 25px;
+    min-width: 145px;
+}
+#nkSiteClose input[type="submit"]:hover {
+    text-decoration: underline;
+}
+#nkSiteClose footer {
+    color: #979994;
+    text-align: center;
+}
+#nkSiteClose a {
+    color: #78B404;
+}
 
+
+/* Affichage pop MP */
+#popup_dhtml {
+    position:absolute;
+    top:0;
+    left:0;
+    visibility:visible;
+    z-index:10;
+}
+
+/* Dimension de la fonction post des commentaires */
+#commentPostGlobal {
+    height: 350px;
+    margin: 0;
+    padding: 0;
+}
+.bgCommentAltern{
+    background: #727272;
+    border-bottom: 1px solid #000;
+}
+.bgCommentAltern:nth-child(odd){
+    background: #646464;
+}
+.buttonLink{
+
+}
+/* Temps de generation index */
+#generate{
+    text-align:center;
+}
+/* NK Captcha */
+#nkCaptcha img {
+    display: block;
+}
+
+
+
+/* CSS LIBRAIRIES POUR LES MODULES */
+/* CSS pour la pagination */
+#globalPageNumber {
+    padding: 10px;
+    text-align: left;
+}
+
+/* CSS pour la fonction Vote */
+div.globalVoteResult {
+    display: inline-block;
+    text-align: right;
+    width: 39%;
+}
+div.globalResultVote {
+    display: inline;
+    float: right;
+    text-align: right;
+    width: 39%;
+}
+div.globalResultVote  > img {
+    vertical-align: middle;
+}
+div[class^='globalRating_'] {
+    display: inline;
+}
+div[id^='globalVoteResult_'] {
+    display: inline;
+}
+.iconeRating {
+    vertical-align: middle;position:relative;
+    z-index:24;
+    color:#000;
+    text-decoration:none
+}
+
+
+/**** INFOBULLE ****/
+.globalInfobulle {
+    display: inline;
+}
+.globalInfobulle a {
+    border-radius: 3px 3px 3px 3px;
+    color: #CCCCCC;
+    padding: 5px 5px;
+    text-decoration: none;
+    text-shadow: 0 -1px 0 black;
+}
+.globalInfobulle a:hover, .globalInfobulle a:focus {
+    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.4);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+    color: #FFFFFF;
+    outline: medium none;
+    text-shadow: 0 1px 2px black;
+}
+.globalInfobulle a p {
+    background: none repeat scroll 0 0 rgba(0, 0, 0, 0.9);
+    border-radius: 3px 3px 3px 3px;
+    box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    color: #0099CC;
+    display: none;
+    margin-left: -35px;
+    margin-top: 25px;
+    padding: 15px;
+    position: absolute;
+    transform: scale(0) rotateZ(-12deg);
+    transition: all 0.25s ease 0s;
+}
+.globalInfobulle a:hover p, .globalInfobulle a:focus p {
+    display: inline;    
+    transform: scale(1) rotateZ(0deg);
+}
+.globalInfobulle a p:before {
+    border-bottom: 6px solid rgba(0, 0, 0, 0.9);
+    border-left: 18px solid transparent;
+    border-right: 18px solid transparent;
+    content: "";
+    height: 0;
+    left: 10px;
+    position: absolute;
+    top: -6px;
+    width: 0;
+}
+
+
+/* Affichage des boutons */
+.buttonLink {
+    background: -moz-linear-gradient(center top , #7D7D7D 0%, #272727) repeat scroll 0 0 transparent;
+    border: 1px solid #343434;
+    border-radius: 7px 7px 7px 7px;
+    color: #FFFFFF;
+    cursor: pointer;
+    display: inline-block;
+    font-family: "OpenSansSemibold",Arial,Sans-serif;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: normal;
+    max-width: 100%;
+    padding: 3px 0;
+    text-align: center;
+    text-shadow: 0 1px 1px #000000;
+    text-transform: uppercase;
+    width: 120px;
+}
+.buttonLink:hover {
+    color: #ccc;
+}
+
+/* Lien Classer par */
+.globalMainWrapper nav#globalOrderBy ul {
+    margin-bottom: 5px;
+    margin-right: 12px;
+    text-align: right;
+}
+.globalMainWrapper nav#globalOrderBy ul li {
+    list-style: none outside none;
+}
+
+/**** COMMUN A TOUT LES MODULES ****/
+section.globalMainWrapper {
+    padding: 10px;
+}
+section.globalMainWrapper > header > h1 {
+    margin: 0 0 20px;
+    text-align: center;
+}
+section.globalMainWrapper > header > nav > ul {
+    text-align: center;
+    padding: 0;
+}
+section.globalMainWrapper > header > nav > ul >li {
+    display: inline;
+}
+section.globalMainWrapper > section {
+    background: none repeat scroll 0 0 #828282;
+    border: 1px solid #000000;
+    border-radius: 5px 5px 5px 5px;
+    display: inline-block;
+    margin-bottom: 20px;
+    width: 100%;
+}
+section.globalMainWrapper > section:last-of-type {
+    margin: 0px;
+}
+section.globalMainWrapper > section > header {
+    background: #107CC5;
+    padding: 5px;
+}
+section.globalMainWrapper > section > header > div:first-child {
+    display: inline-block;
+    width: 60%;
+}
+section.globalMainWrapper > section > header > div > h4 {
+    display: inline;
+    margin-right: 15px;
+    font-size: 12px;
+}
+section.globalMainWrapper > section > header > div > figure {
+    display: inline;
+    margin-right: 15px;
+}
+section.globalMainWrapper > section > header > img {
+    display: inline;
+}
+section.globalMainWrapper > footer {
+    padding-bottom: 10px;
+}
+section.globalMainWrapper .globalSubNav {
+    display: inline;
+    vertical-align: top;
+}
+section.globalMainWrapper .globalSubNav > ul > li {
+    display: inline-block;
+    padding: 15px;
+    vertical-align: top;
+    max-width: 25%;
+}
+section.globalMainWrapper .globalSubNav ul > li > ul {
+    text-align: left;
+    padding-left: 15px;
+}
+section.globalMainWrapper .globalSubNav ul > li > ul > li {
+    display: inline;
+
+}
+/* Fil d'ariane */
+section.globalMainWrapper > header > nav.breadCrumb {
+    display: inline-block;
+    text-align: left;
+}
+section.globalMainWrapper .breadCrumb ul li:nth-child(n+2):before {
+    content: " > ";
+}

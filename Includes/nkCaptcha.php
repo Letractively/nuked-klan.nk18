@@ -11,10 +11,10 @@
 if (!defined("INDEX_CHECK")) exit('You can\'t run this file alone.');
 
 //réglage captcha (auto | on | off)
-define("_NKCAPTCHA","auto");
-if (isset($_SESSION['captcha']))
+define("NKCAPTCHA","auto");
+if (isset($_SESSION['captcha'])){
 	$GLOBALS['nkCaptchaCache'] = $_SESSION['captcha'];
-else{
+}else{
 	$GLOBALS['nkCaptchaCache'] = uniqid();
 }
 
@@ -40,36 +40,68 @@ function Captcha_Generator(){
 **/
 function ValidCaptchaCode($code){
 	global $user;
-	return _NKCAPTCHA == 'off' || ($user != null && $user[1] > 0) || strtolower($GLOBALS['nkCaptchaCache']) == strtolower($code);
+	return NKCAPTCHA == 'off' || ($user != null && $user[1] > 0) || strtolower($GLOBALS['nkCaptchaCache']) == strtolower($code);
 }
 
 function create_captcha($style){
     $random_code = Captcha_Generator();
 
     if ($style == 1){
-		echo '<tr><td>&nbsp;</td></tr><tr><td><b>' , _SECURITYCODE , ' :</b>';
+    ?>
 
-		if (@extension_loaded('gd')) echo '&nbsp;<img src="captcha.php" alt="" title="' , _SECURITYCODE ,'" />';
-		else echo '&nbsp;<big><i>' , $random_code , '</i></big>';
+		<p>&nbsp;<?php echo SECURITYCODE; ?>&nbsp;: 
 
-		echo '</td></tr><tr><td><b>' , _TYPESECCODE , ' :</b>&nbsp;<input type="text" id="code" name="code_confirm" size="7" maxlength="5" /></td></tr>',"\n"
-		, '<tr><td>&nbsp;</td></tr>',"\n";
+		<?php
+		if (@extension_loaded('gd')){
+		?>		
+			&nbsp;<img src="captcha.php" alt="" title="<?php echo SECURITYCODE; ?>" /></p>
+		<?php
+		}else {
+		?>
+			&nbsp;<big><i><?php echo $random_code; ?></i></big></p>
+		<?php
+		}
+		?>
 
+		<label for="code"><?php echo TYPESECCODE; ?></label>&nbsp;:&nbsp;
+			<input type="text" id="code" name="code_confirm" size="7" maxlength="5" />
+
+	<?php	
     }
     else if ($style == 2){
-		echo '<tr><td colspan="2">&nbsp;</td></tr><tr><td><b>' , _SECURITYCODE , ' :</b></td><td>';
+    ?>
+		<p>&nbsp;<?php echo SECURITYCODE; ?>&nbsp;:</p>
 
-		if (@extension_loaded('gd')) echo '<img src="captcha.php" alt="" title="' , _SECURITYCODE , '" />';
-		else echo '<big><i>' , $random_code , '</i></big>';
+		<?php
+		if (@extension_loaded('gd')){
+		?>
 
-		echo '</td></tr><tr><td><b>' , _TYPESECCODE ,' :</b></td><td><input type="text" id="code" name="code_confirm" size="6" maxlength="5" /></td></tr>',"\n"
-		, '<tr><td colspan="2">&nbsp;</td></tr>',"\n";
-    }
-    else{
-		echo '<br />';
-		if (@extension_loaded('gd')) echo '<img src="captcha.php" alt="" title="' , _SECURITYCODE , '" />';
-		else echo '<big><i>' , $random_code , '</i></big>';
-		echo '<br />' , _TYPESECCODE , ' : <br /><input type="text" name="code_confirm" id="code" size="7" maxlength="5" /><br /><br />';
+			<img src="captcha.php" alt="" title="' , SECURITYCODE , '" />
+
+		<?php
+		}else{
+		?>
+		 	<?php echo $random_code; ?>
+
+			<label for="code"><?php echo TYPESECCODE; ?></label>&nbsp;:&nbsp;
+				<input type="text" id="code" name="code_confirm" size="6" maxlength="5" />
+	<?php	
+		}
+    }else{
+
+		if (@extension_loaded('gd')){
+		?>
+
+			<img src="captcha.php" alt="" title="<?php echo SECURITYCODE; ?>" />
+
+		<?php
+		}else{
+		?>
+			<?php echo $random_code; ?>
+			<label for="code"><?php echo TYPESECCODE; ?></label>&nbsp;:&nbsp;
+				<input type="text" name="code_confirm" id="code" size="7" maxlength="5" />
+		<?php
+    	}
     }
 	return($random_code);
 }
